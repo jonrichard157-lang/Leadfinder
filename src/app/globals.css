@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+@theme {
+  /* Base neutrals — cool ink scale, not pure gray */
+  --color-ink-950: #0b1220;
+  --color-ink-900: #111a2e;
+  --color-ink-800: #1a2540;
+  --color-ink-700: #263258;
+  --color-ink-600: #38456b;
+  --color-ink-500: #566285;
+  --color-ink-400: #7c87a8;
+  --color-ink-300: #a7afc7;
+  --color-ink-200: #ced3e2;
+  --color-ink-100: #e6e9f2;
+  --color-ink-50:  #f5f6fa;
+
+  /* Brand — signal blue, confident and cool (not purple, not teal cliché) */
+  --color-signal-700: #1039a8;
+  --color-signal-600: #1447d1;
+  --color-signal-500: #2456e8;
+  --color-signal-400: #4d75f0;
+  --color-signal-100: #e2e9fd;
+  --color-signal-50:  #f2f5fe;
+
+  /* Opportunity accent — warm amber, used sparingly for scoring/badges */
+  --color-amber-600: #b5730a;
+  --color-amber-500: #d68910;
+  --color-amber-100: #fbecd0;
+  --color-amber-50:  #fdf6e9;
+
+  /* Status */
+  --color-green-600: #167a4c;
+  --color-green-100: #dcf3e6;
+  --color-red-600: #b3311f;
+  --color-red-100: #fbe1dd;
+
+  --font-display: "Fraunces", "ui-serif", "Georgia", serif;
+  --font-sans: "Inter", "ui-sans-serif", "system-ui", sans-serif;
+  --font-mono: "IBM Plex Mono", "ui-monospace", monospace;
+
+  --radius-card: 0.625rem;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    background-color: var(--color-ink-50);
+    color: var(--color-ink-900);
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-signal-500);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
