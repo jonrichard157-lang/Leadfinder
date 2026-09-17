@@ -20,9 +20,9 @@ export function LeadCard({ lead, onToggleSave, onViewDetails }: LeadCardProps) {
     <Card className="flex flex-col gap-4 p-5 transition-shadow hover:shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="truncate text-base font-semibold text-[var(--color-ink-900)]">
+          <p className="truncate text-base font-semibold text-[var(--color-ink-900)]">
             {lead.name}
-          </h3>
+          </p>
           <p className="mt-0.5 text-sm text-[var(--color-ink-500)]">{lead.category}</p>
         </div>
         <OpportunityScore score={lead.opportunityScore} />
