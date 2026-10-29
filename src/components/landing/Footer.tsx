@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Orbit } from 'lucide-react'
+import { Logo } from '@/components/brand/Logo'
 
 const COLUMNS = [
   {
@@ -33,14 +33,7 @@ export function Footer() {
       <div className="mx-auto max-w-6xl px-4 md:px-6">
         <div className="grid gap-10 md:grid-cols-[1.5fr_1fr_1fr_1fr]">
           <div>
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--color-signal-600)] text-white">
-                <Orbit size={16} />
-              </div>
-              <span className="font-display text-base font-semibold text-[var(--color-ink-900)]">
-                OrbeLead
-              </span>
-            </div>
+            <Logo tagline />
             <p className="mt-3 max-w-xs text-sm text-[var(--color-ink-500)]">
               Prospecção comercial para freelancers, desenvolvedores e agências digitais.
             </p>

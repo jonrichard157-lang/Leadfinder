@@ -2,8 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Orbit, LogOut, ShieldCheck } from 'lucide-react'
+import { LogOut, ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Logo } from '@/components/brand/Logo'
 import { useUser } from '@/hooks/useUser'
 import { getNavItems } from './nav'
 
@@ -24,12 +25,9 @@ export function Sidebar() {
   return (
     <aside className="hidden w-64 shrink-0 flex-col border-r border-[var(--color-ink-100)] bg-white md:flex">
       <div className="flex h-16 items-center gap-2 border-b border-[var(--color-ink-100)] px-6">
-        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--color-signal-600)] text-white">
-          <Orbit size={18} />
-        </div>
-        <span className="font-display text-lg font-semibold text-[var(--color-ink-900)]">
-          OrbeLead
-        </span>
+        <Link href="/app" aria-label="OrbeLead — Dashboard">
+          <Logo />
+        </Link>
       </div>
 
       <nav className="flex-1 space-y-1 px-3 py-4">

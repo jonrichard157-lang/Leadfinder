@@ -14,13 +14,14 @@
   --color-ink-100: #e6e9f2;
   --color-ink-50:  #f5f6fa;
 
-  /* Brand — signal blue, confident and cool (not purple, not teal cliché) */
-  --color-signal-700: #1039a8;
-  --color-signal-600: #1447d1;
-  --color-signal-500: #2456e8;
-  --color-signal-400: #4d75f0;
-  --color-signal-100: #e2e9fd;
-  --color-signal-50:  #f2f5fe;
+  /* Brand — OrbeLead: navy do "O" e azul da órbita (ver src/components/brand/Logo.tsx) */
+  --color-navy: #0b1437;
+  --color-signal-700: #3237c4;
+  --color-signal-600: #4049e0;
+  --color-signal-500: #4f5bf0;
+  --color-signal-400: #7480f5;
+  --color-signal-100: #e3e5fd;
+  --color-signal-50:  #f2f3fe;
 
   /* Opportunity accent — warm amber, used sparingly for scoring/badges */
   --color-amber-600: #b5730a;
@@ -37,6 +38,7 @@
   --font-display: "Fraunces", "ui-serif", "Georgia", serif;
   --font-sans: "Inter", "ui-sans-serif", "system-ui", sans-serif;
   --font-mono: "IBM Plex Mono", "ui-monospace", monospace;
+  --font-brand: "Poppins", "ui-sans-serif", "system-ui", sans-serif;
 
   --radius-card: 0.625rem;
 }

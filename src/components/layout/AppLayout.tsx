@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, type ReactNode } from 'react'
-import { X, Orbit } from 'lucide-react'
+import { X } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import { cn } from '@/lib/utils'
+import { Logo } from '@/components/brand/Logo'
 import { useUser } from '@/hooks/useUser'
 import { getNavItems } from './nav'
 
@@ -31,12 +32,7 @@ export function AppLayout({ title, subtitle, children }: AppLayoutProps) {
           <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
           <div className="absolute left-0 top-0 flex h-full w-72 flex-col bg-white">
             <div className="flex h-16 items-center justify-between border-b border-[var(--color-ink-100)] px-5">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--color-signal-600)] text-white">
-                  <Orbit size={18} />
-                </div>
-                <span className="font-display text-lg font-semibold">OrbeLead</span>
-              </div>
+              <Logo />
               <button onClick={() => setMobileOpen(false)} aria-label="Fechar menu">
                 <X size={20} />
               </button>

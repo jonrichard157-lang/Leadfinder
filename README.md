@@ -56,6 +56,13 @@ com validade, número máximo de usos e bloqueio após 5 tentativas erradas em 1
   Configurações → Acesso da equipe.
 - **Revogar:** na página `/app/equipe` (códigos ainda não usados ou membros).
 
+## Marca
+
+- Logo no site: `src/components/brand/Logo.tsx` (`<Logo />`, `<LogoMark />`)
+- Favicon, ícones de app e imagem de perfil (1024px, para redes sociais) em
+  `src/app/` e `public/brand/`, gerados por `node scripts/brand-assets.mjs`
+- Paleta: navy `#0B1437`, azul `#2F6BF0 → #4F46E5`; fonte do logotipo: Poppins
+
 ## Estrutura
 
 ```

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
-import { Orbit, GlobeLock, Gauge, Bookmark } from 'lucide-react'
+import { GlobeLock, Gauge, Bookmark } from 'lucide-react'
+import { Logo } from '@/components/brand/Logo'
 
 interface AuthLayoutProps {
   title: string
@@ -20,13 +21,8 @@ export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProp
     <div className="grid min-h-screen md:grid-cols-2">
       <div className="flex flex-col justify-center px-6 py-12 sm:px-12 md:px-16">
         <div className="mx-auto w-full max-w-sm">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--color-signal-600)] text-white">
-              <Orbit size={18} />
-            </div>
-            <span className="font-display text-lg font-semibold text-[var(--color-ink-900)]">
-              OrbeLead
-            </span>
+          <Link href="/" aria-label="OrbeLead — página inicial">
+            <Logo size="lg" tagline />
           </Link>
 
           <h1 className="mt-8 font-display text-2xl font-semibold text-[var(--color-ink-900)]">
