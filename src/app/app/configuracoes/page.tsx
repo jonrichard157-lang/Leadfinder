@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, type FormEvent } from 'react'
-import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
+import Link from 'next/link'
+import { CheckCircle2, AlertCircle, Loader2, ShieldCheck, KeyRound } from 'lucide-react'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Card } from '@/components/ui/Card'
 import { Input, Label } from '@/components/ui/Input'
@@ -9,17 +10,19 @@ import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/hooks/useUser'
 import { supabase } from '@/lib/supabase'
+import { redeemTeamCode } from '@/lib/services/team'
 
 const TABS = [
   { id: 'perfil', label: 'Perfil' },
   { id: 'senha', label: 'Senha' },
   { id: 'notificacoes', label: 'Notificações' },
+  { id: 'equipe', label: 'Acesso da equipe' },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
 
 export default function SettingsPage() {
-  const { user, profile, initials, refreshProfile } = useUser()
+  const { user, profile, initials, isTeam, isAdmin, refreshProfile } = useUser()
   const [activeTab, setActiveTab] = useState<TabId>('perfil')
 
   // Profile form state
@@ -28,6 +31,11 @@ export default function SettingsPage() {
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileSuccess, setProfileSuccess] = useState(false)
   const [profileError, setProfileError] = useState<string | null>(null)
+
+  // Team access state
+  const [teamCode, setTeamCode] = useState('')
+  const [teamLoading, setTeamLoading] = useState(false)
+  const [teamMessage, setTeamMessage] = useState<{ ok: boolean; text: string } | null>(null)
 
   // Password form state
   const [newPassword, setNewPassword] = useState('')
@@ -123,16 +131,33 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleRedeemTeamCode(e: FormEvent) {
+    e.preventDefault()
+    if (!teamCode.trim()) return
+
+    setTeamLoading(true)
+    setTeamMessage(null)
+
+    const result = await redeemTeamCode(teamCode.trim())
+    setTeamMessage({ ok: result.ok, text: result.message })
+    if (result.ok) {
+      setTeamCode('')
+      refreshProfile()
+    }
+
+    setTeamLoading(false)
+  }
+
   return (
     <AppLayout title="Configurações" subtitle="Gerencie sua conta e preferências">
       <div className="mx-auto max-w-2xl">
-        <div className="flex gap-1.5 border-b border-[var(--color-ink-100)]">
+        <div className="flex gap-1.5 overflow-x-auto border-b border-[var(--color-ink-100)]">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                'border-b-2 px-3 pb-3 text-sm font-medium transition-colors',
+                'whitespace-nowrap border-b-2 px-3 pb-3 text-sm font-medium transition-colors',
                 activeTab === tab.id
                   ? 'border-[var(--color-signal-600)] text-[var(--color-signal-700)]'
                   : 'border-transparent text-[var(--color-ink-500)] hover:text-[var(--color-ink-800)]'
@@ -166,7 +191,7 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-[var(--color-ink-900)]">
-                    Plano {profile?.plan ? profile.plan.toUpperCase() : 'FREE'}
+                    {isTeam ? 'Equipe OrbeLead' : `Plano ${profile?.plan ? profile.plan.toUpperCase() : 'FREE'}`}
                   </p>
                   <p className="text-xs text-[var(--color-ink-500)]">{user?.email}</p>
                 </div>
@@ -284,7 +309,7 @@ export default function SettingsPage() {
             {[
               { title: 'Novos leads de alta oportunidade', desc: 'Receba um alerta por e-mail quando encontrarmos leads com score acima de 80.' },
               { title: 'Resumo semanal', desc: 'Um resumo da sua prospecção toda segunda-feira.' },
-              { title: 'Novidades do produto', desc: 'Atualizações e novos recursos do LeadFinder.' },
+              { title: 'Novidades do produto', desc: 'Atualizações e novos recursos do OrbeLead.' },
             ].map((item) => (
               <label key={item.title} className="flex cursor-pointer items-center justify-between gap-4 p-4">
                 <div>
@@ -294,6 +319,87 @@ export default function SettingsPage() {
                 <input type="checkbox" defaultChecked className="h-5 w-5 shrink-0 accent-[var(--color-signal-600)]" />
               </label>
             ))}
+          </Card>
+        )}
+
+        {activeTab === 'equipe' && (
+          <Card className="mt-6 space-y-4 p-6">
+            {isTeam ? (
+              <div className="flex items-start gap-3">
+                <ShieldCheck size={22} className="mt-0.5 shrink-0 text-[var(--color-green-600)]" />
+                <div>
+                  <p className="text-sm font-medium text-[var(--color-ink-900)]">
+                    Sua conta tem acesso de {isAdmin ? 'administrador' : 'equipe'}
+                  </p>
+                  <p className="mt-1 text-sm text-[var(--color-ink-600)]">
+                    Buscas e leads ilimitados, sem necessidade de plano.
+                  </p>
+                  {isAdmin && (
+                    <Link
+                      href="/app/equipe"
+                      className="mt-3 inline-block text-sm font-medium text-[var(--color-signal-600)] hover:underline"
+                    >
+                      Gerenciar equipe e códigos de acesso →
+                    </Link>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleRedeemTeamCode} className="space-y-4">
+                <div>
+                  <p className="text-sm font-medium text-[var(--color-ink-900)]">Faz parte da equipe OrbeLead?</p>
+                  <p className="mt-1 text-sm text-[var(--color-ink-600)]">
+                    Informe o código de acesso que você recebeu do administrador para liberar todas as
+                    funcionalidades sem plano.
+                  </p>
+                </div>
+
+                {teamMessage && (
+                  <div
+                    className={cn(
+                      'flex items-center gap-2 rounded-lg border p-3 text-sm',
+                      teamMessage.ok
+                        ? 'border-green-200 bg-green-50 text-green-700'
+                        : 'border-red-200 bg-red-50 text-red-700'
+                    )}
+                  >
+                    {teamMessage.ok ? (
+                      <CheckCircle2 size={18} className="shrink-0" />
+                    ) : (
+                      <AlertCircle size={18} className="shrink-0" />
+                    )}
+                    <span>{teamMessage.text}</span>
+                  </div>
+                )}
+
+                <div>
+                  <Label htmlFor="team-code">Código de acesso</Label>
+                  <Input
+                    id="team-code"
+                    placeholder="ORBE-XXXX-XXXX-XXXX"
+                    value={teamCode}
+                    onChange={(e) => setTeamCode(e.target.value.toUpperCase())}
+                    icon={<KeyRound size={16} />}
+                    autoComplete="off"
+                    spellCheck={false}
+                    className="font-mono tracking-wider"
+                    required
+                    disabled={teamLoading}
+                  />
+                </div>
+
+                <Button type="submit" disabled={teamLoading || !teamCode.trim()}>
+                  {teamLoading ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 size={16} className="animate-spin" />
+                      Verificando...
+                    </span>
+                  ) : (
+                    'Verificar código'
+                  )}
+                </Button>
+              </form>
+            )}
           </Card>
         )}
       </div>

@@ -6,13 +6,13 @@ import { cn } from '@/lib/utils'
 
 const FAQS = [
   {
-    question: 'Como o LeadFinder encontra empresas sem website?',
+    question: 'Como o OrbeLead encontra empresas sem website?',
     answer:
       'A plataforma cruza dados de empresas locais e verifica a presença de um website vinculado ao negócio, sinalizando quais estabelecimentos ainda não têm presença digital própria.',
   },
   {
     question: 'Preciso instalar alguma coisa?',
-    answer: 'Não. O LeadFinder funciona direto no navegador, em qualquer computador ou celular.',
+    answer: 'Não. O OrbeLead funciona direto no navegador, em qualquer computador ou celular.',
   },
   {
     question: 'Os dados são atualizados com que frequência?',

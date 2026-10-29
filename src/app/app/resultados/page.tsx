@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense, useEffect, useState, useTransition } from 'react'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   SlidersHorizontal,
@@ -34,6 +35,7 @@ function ResultsContent() {
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [sortByScore, setSortByScore] = useState(true)
   const [, startTransition] = useTransition()
 
@@ -91,11 +93,15 @@ function ResultsContent() {
     if (!targetLead) return
 
     const newSaved = !targetLead.saved
+    setSaveError(null)
     setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, saved: newSaved } : l)))
 
     startTransition(async () => {
       const res = await toggleSaveLead(user.id, targetLead)
-      if (res.lead && res.lead.id !== id) {
+      if (res.error) {
+        setSaveError(res.error)
+        setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, saved: res.saved } : l)))
+      } else if (res.lead && res.lead.id !== id) {
         setLeads((prev) => prev.map((l) => (l.id === id ? { ...res.lead, saved: res.saved } : l)))
       }
       refreshProfile()
@@ -115,7 +121,7 @@ function ResultsContent() {
   }
 
   function handleExport() {
-    exportLeadsToCsv(leads, `leadfinder-busca-${location.replace(/[^a-zA-Z0-9]/g, '_')}`)
+    exportLeadsToCsv(leads, `orbelead-busca-${location.replace(/[^a-zA-Z0-9]/g, '_')}`)
   }
 
   const categoryLabel = category && category !== 'Todas as categorias' ? category : 'Empresas'
@@ -162,6 +168,15 @@ function ResultsContent() {
             </Button>
           </div>
         </div>
+
+        {saveError && (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <span>{saveError}</span>
+            <Link href="/app/assinatura" className="shrink-0 font-medium underline">
+              Ver planos
+            </Link>
+          </div>
+        )}
 
         {/* Estado de Carregamento */}
         {loading ? (

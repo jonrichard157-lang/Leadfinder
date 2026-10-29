@@ -22,6 +22,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Consome uma busca da cota do plano antes de chamar o Google (equipe e planos pagos são ilimitados).
+    const { error: quotaError } = await supabase.rpc('consume_search')
+    if (quotaError) {
+      if (quotaError.hint === 'search_limit') {
+        return NextResponse.json({ error: quotaError.message }, { status: 403 })
+      }
+      throw new Error(`Falha ao verificar a cota de buscas: ${quotaError.message}`)
+    }
+
     const body = await request.json()
     const filters: SearchFilters = {
       location: body.location || 'Curitiba, PR',

@@ -68,7 +68,13 @@ export default function LeadDetailPage() {
       startTransition(async () => {
         // Se ainda não estava salvo, salva com o novo status
         if (!lead.saved) {
-          await toggleSaveLead(user.id, { ...lead, status: newStatus })
+          const res = await toggleSaveLead(user.id, { ...lead, status: newStatus })
+          if (res.error) {
+            setLead((prev) => (prev ? { ...prev, status: lead.status } : null))
+            window.alert(res.error)
+          } else {
+            setLead((prev) => (prev ? { ...prev, id: res.lead.id, saved: true } : null))
+          }
         } else {
           await updateLeadStatus(user.id, lead.id, newStatus)
         }
@@ -83,7 +89,11 @@ export default function LeadDetailPage() {
     setLead((prev) => (prev ? { ...prev, saved: newSaved } : null))
 
     startTransition(async () => {
-      await toggleSaveLead(user.id, lead)
+      const res = await toggleSaveLead(user.id, lead)
+      if (res.error) {
+        setLead((prev) => (prev ? { ...prev, saved: res.saved } : null))
+        window.alert(res.error)
+      }
     })
   }
 
@@ -93,12 +103,18 @@ export default function LeadDetailPage() {
 
     try {
       // Se o lead ainda não estava salvo, garante o salvamento primeiro
+      let leadId = lead.id
       if (!lead.saved) {
-        await toggleSaveLead(user.id, lead)
+        const res = await toggleSaveLead(user.id, lead)
+        if (res.error) {
+          window.alert(res.error)
+          return
+        }
+        leadId = res.lead.id
       }
 
-      const updatedNotes = await addLeadNote(user.id, lead.id, noteContent.trim())
-      setLead((prev) => (prev ? { ...prev, notes: updatedNotes, saved: true } : null))
+      const updatedNotes = await addLeadNote(user.id, leadId, noteContent.trim())
+      setLead((prev) => (prev ? { ...prev, id: leadId, notes: updatedNotes, saved: true } : null))
       setNoteContent('')
     } finally {
       setSavingNote(false)

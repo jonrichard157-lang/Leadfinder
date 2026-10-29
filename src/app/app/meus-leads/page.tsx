@@ -71,7 +71,7 @@ export default function MyLeadsPage() {
   }
 
   function handleExportCsv() {
-    exportLeadsToCsv(filtered.length > 0 ? filtered : leads, `leadfinder-meus-leads-${activeTab}`)
+    exportLeadsToCsv(filtered.length > 0 ? filtered : leads, `orbelead-meus-leads-${activeTab}`)
   }
 
   return (

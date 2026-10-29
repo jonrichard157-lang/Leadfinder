@@ -5,7 +5,7 @@ const STEPS = [
     icon: Search,
     title: 'Busque por região e categoria',
     description:
-      'Informe a localização, o tipo de negócio e o raio de busca. O LeadFinder varre os estabelecimentos da área.',
+      'Informe a localização, o tipo de negócio e o raio de busca. O OrbeLead varre os estabelecimentos da área.',
   },
   {
     icon: ListFilter,

@@ -10,7 +10,7 @@ export const PLANS: Plan[] = [
     description: 'Para testar a plataforma e validar sua primeira lista de leads.',
     features: [
       '10 leads por mês',
-      '1 busca salva',
+      '10 buscas por mês',
       'Filtro "sem website"',
       'Exportação básica',
     ],

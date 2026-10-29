@@ -9,8 +9,12 @@ export interface UserProfileData {
   full_name: string | null
   company: string | null
   plan: 'free' | 'pro' | 'agencia'
+  role: 'user' | 'team' | 'admin'
   monthly_lead_limit: number
   leads_used_this_month: number
+  monthly_search_limit: number
+  searches_used_this_month: number
+  usage_month: string
   avatar_url: string | null
 }
 
@@ -87,11 +91,17 @@ export function useUser() {
 
   const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuário'
 
+  // Equipe e administradores usam o sistema sem limites de plano
+  const isAdmin = profile?.role === 'admin'
+  const isTeam = isAdmin || profile?.role === 'team'
+
   return {
     user,
     profile,
     displayName,
     initials,
+    isTeam,
+    isAdmin,
     loading,
     signOut,
     refreshProfile: () => user && fetchProfile(user.id),

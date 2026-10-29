@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Target } from 'lucide-react'
+import { Orbit } from 'lucide-react'
 
 const COLUMNS = [
   {
@@ -35,10 +35,10 @@ export function Footer() {
           <div>
             <div className="flex items-center gap-2">
               <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--color-signal-600)] text-white">
-                <Target size={16} />
+                <Orbit size={16} />
               </div>
               <span className="font-display text-base font-semibold text-[var(--color-ink-900)]">
-                LeadFinder
+                OrbeLead
               </span>
             </div>
             <p className="mt-3 max-w-xs text-sm text-[var(--color-ink-500)]">
@@ -70,7 +70,7 @@ export function Footer() {
 
         <div className="mt-10 border-t border-[var(--color-ink-100)] pt-6">
           <p className="text-xs text-[var(--color-ink-400)]">
-            © 2026 LeadFinder. Todos os direitos reservados.
+            © 2026 OrbeLead. Todos os direitos reservados.
           </p>
         </div>
       </div>

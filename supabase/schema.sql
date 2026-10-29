@@ -1,6 +1,7 @@
 -- ==============================================================================
--- LEADFINDER — DATABASE SCHEMA & RLS POLICIES (SUPABASE)
+-- ORBELEAD — DATABASE SCHEMA & RLS POLICIES (SUPABASE)
 -- Execute este script no SQL Editor do seu projeto Supabase.
+-- Depois, execute os arquivos de supabase/migrations/ em ordem.
 -- ==============================================================================
 
 -- 1. TABELA DE PERFIS DE USUÁRIOS (PROFILES)

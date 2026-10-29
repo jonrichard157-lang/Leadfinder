@@ -4,7 +4,7 @@ import type { Lead } from '@/types'
  * Utilitário para exportar lista de leads em formato CSV (compatível com Excel/Google Sheets).
  * Adiciona BOM UTF-8 (\uFEFF) para garantir suporte perfeito a caracteres em português.
  */
-export function exportLeadsToCsv(leads: Lead[], filename = 'leadfinder-leads.csv') {
+export function exportLeadsToCsv(leads: Lead[], filename = 'orbelead-leads.csv') {
   if (!leads || leads.length === 0) {
     return false
   }

@@ -1,8 +1,9 @@
-# LeadFinder — v1 (Next.js)
+# OrbeLead
 
 Plataforma de prospecção comercial para freelancers, desenvolvedores e agências
-digitais. Versão migrada de Vite para **Next.js (App Router)**. Interface
-completa com dados mock, sem integrações externas.
+digitais: encontra empresas locais sem site próprio usando a Google Places API.
+
+Stack: **Next.js 16 (App Router)**, **Supabase** (Auth + Postgres) e deploy na **Vercel**.
 
 ## Rodar localmente
 
@@ -11,51 +12,65 @@ npm install
 npm run dev
 ```
 
-Build de produção:
+Copie `.env.example` para `.env.local` e preencha:
 
-```bash
-npm run build
-npm start
-```
+| Variável | Obrigatória | Uso |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | sim | URL do projeto Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | sim | Chave pública (anon) do Supabase |
+| `GOOGLE_PLACES_API_KEY` | em produção | Places API (New). Sem ela, `npm run dev` usa dados simulados e produção retorna erro na busca |
 
-## Estrutura (App Router)
+## Banco de dados (Supabase)
+
+No SQL Editor do Supabase, execute em ordem:
+
+1. `supabase/schema.sql` — tabelas, RLS e criação automática de perfis
+2. `supabase/migrations/002_team_access_and_limits.sql` — limites de plano e acesso da equipe
+
+## Planos e limites
+
+Os limites são aplicados no banco (funções `consume_search` e trigger `enforce_lead_quota`),
+não no navegador. Os contadores zeram automaticamente a cada mês.
+
+| | Buscas/mês | Leads salvos/mês |
+| --- | --- | --- |
+| Grátis | 10 (`monthly_search_limit`) | 10 (`monthly_lead_limit`) |
+| Pro | ilimitadas | `monthly_lead_limit` |
+| Agência | ilimitadas | ilimitados |
+| Equipe / Admin | ilimitadas | ilimitados |
+
+## Acesso da equipe
+
+Contas da equipe usam todas as funcionalidades sem plano. O acesso é liberado por
+**código de verificação** (formato `ORBE-XXXX-XXXX-XXXX`), guardado no banco só como hash,
+com validade, número máximo de usos e bloqueio após 5 tentativas erradas em 15 minutos.
+
+- **Primeiro admin** (uma vez, no SQL Editor):
+  ```sql
+  UPDATE public.profiles SET role = 'admin'
+   WHERE id = (SELECT id FROM auth.users WHERE email = 'seu-email@exemplo.com');
+  ```
+- **Gerar códigos:** página `/app/equipe` (visível só para admins) ou no SQL Editor:
+  `SELECT public.create_team_code('Equipe dev', 5, 30);` (identificação, usos, dias de validade)
+- **Resgatar:** a pessoa cria uma conta normal e informa o código em
+  Configurações → Acesso da equipe.
+- **Revogar:** na página `/app/equipe` (códigos ainda não usados ou membros).
+
+## Estrutura
 
 ```
 src/app/
-  page.tsx                     → Landing Page ("/")
-  login/page.tsx                → Login
-  cadastro/page.tsx             → Cadastro
-  recuperar-senha/page.tsx      → Recuperação de senha
-  app/page.tsx                  → Dashboard ("/app")
-  app/buscar/page.tsx           → Buscar Leads
-  app/resultados/page.tsx       → Resultados
-  app/meus-leads/page.tsx       → Meus Leads
-  app/leads/[id]/page.tsx       → Detalhes do Lead (rota dinâmica)
-  app/assinatura/page.tsx       → Assinatura
-  app/configuracoes/page.tsx    → Configurações
+  page.tsx                     → Landing page
+  login/, cadastro/, recuperar-senha/
+  api/leads/search/route.ts    → Busca (cota do plano + Google Places)
+  app/page.tsx                 → Dashboard
+  app/buscar/, app/resultados/ → Busca de leads
+  app/meus-leads/, app/leads/[id]/
+  app/assinatura/, app/configuracoes/
+  app/equipe/                  → Gestão da equipe (admin)
 
-src/components/  → ui, layout, leads, landing (mesma organização da v1)
-src/mocks/       → leads.ts, plans.ts (dados fictícios)
-src/types/       → tipos centrais do domínio
-src/lib/         → utils.ts, supabase.ts (placeholder)
+src/lib/services/  → search.ts (Google Places), leads.ts, team.ts
+src/lib/supabase/  → clientes browser/servidor e proxy de sessão
+src/proxy.ts       → protege /app/* (exige login)
+supabase/          → schema.sql e migrations/
 ```
-
-## Notas da migração Vite → Next.js
-
-- Roteamento por arquivos (App Router) substitui `react-router-dom`.
-- `Link` e `useRouter`/`usePathname`/`useParams` de `next/link` e
-  `next/navigation` substituem os equivalentes do React Router.
-- Componentes com estado/eventos (formulários, sidebar, cards com botões)
-  têm a diretiva `'use client'`; o restante permanece Server Component.
-- Variáveis de ambiente do Supabase agora usam o prefixo `NEXT_PUBLIC_`
-  (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) em vez do
-  prefixo `VITE_`.
-
-## O que NÃO está implementado nesta etapa (proposital)
-
-- Google Maps / Google Places API
-- Pagamentos (Stripe / Mercado Pago)
-- IA e scraping
-- Envio de mensagens
-- Autenticação real (Supabase Auth) — os formulários de login/cadastro
-  apenas navegam para `/app`

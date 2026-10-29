@@ -147,7 +147,7 @@ export async function getLeadById(leadId: string, userId?: string): Promise<Lead
 export async function toggleSaveLead(
   userId: string,
   lead: Lead
-): Promise<{ saved: boolean; lead: Lead }> {
+): Promise<{ saved: boolean; lead: Lead; error?: string }> {
   try {
     // 1. Garante que o lead exista na tabela `leads`
     let targetLeadId = lead.id
@@ -181,7 +181,7 @@ export async function toggleSaveLead(
 
       if (insertLeadError || !newLead) {
         console.error('Erro ao inserir lead no banco:', insertLeadError)
-        return { saved: !lead.saved, lead: { ...lead, saved: !lead.saved } }
+        return { saved: lead.saved, lead, error: 'Não foi possível salvar o lead.' }
       }
 
       targetLeadId = newLead.id
@@ -202,37 +202,29 @@ export async function toggleSaveLead(
       await supabase.from('saved_leads').delete().eq('id', existingSaved.id)
       return { saved: false, lead: { ...lead, id: targetLeadId, saved: false } }
     } else {
-      // Salva para o usuário
-      await supabase.from('saved_leads').insert({
+      // Salva para o usuário. O trigger `enforce_lead_quota` conta o uso do mês
+      // e bloqueia quando o limite do plano é atingido (equipe não tem limite).
+      const { error: saveError } = await supabase.from('saved_leads').insert({
         user_id: userId,
         lead_id: targetLeadId,
         status: lead.status || 'novo',
         notes: lead.notes || [],
       })
 
-      // Incrementa contador de uso de leads do mês
-      try {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('leads_used_this_month')
-          .eq('id', userId)
-          .single()
-
-        if (profile) {
-          await supabase
-            .from('profiles')
-            .update({ leads_used_this_month: (profile.leads_used_this_month || 0) + 1 })
-            .eq('id', userId)
+      if (saveError) {
+        console.error('Erro ao salvar lead:', saveError)
+        return {
+          saved: false,
+          lead: { ...lead, id: targetLeadId, saved: false },
+          error: saveError.hint === 'lead_limit' ? saveError.message : 'Não foi possível salvar o lead.',
         }
-      } catch (profileErr) {
-        console.warn('Não foi possível atualizar contador de leads no perfil:', profileErr)
       }
 
       return { saved: true, lead: { ...lead, id: targetLeadId, saved: true } }
     }
   } catch (err) {
     console.error('Erro ao alternar salvamento de lead:', err)
-    return { saved: !lead.saved, lead: { ...lead, saved: !lead.saved } }
+    return { saved: lead.saved, lead, error: 'Não foi possível salvar o lead.' }
   }
 }
 

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Target, Menu, X } from 'lucide-react'
+import { Orbit, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 
 const LINKS = [
@@ -20,10 +20,10 @@ export function LandingHeader() {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 md:px-6">
         <Link href="/" className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--color-signal-600)] text-white">
-            <Target size={18} />
+            <Orbit size={18} />
           </div>
           <span className="font-display text-lg font-semibold text-[var(--color-ink-900)]">
-            LeadFinder
+            OrbeLead
           </span>
         </Link>
 

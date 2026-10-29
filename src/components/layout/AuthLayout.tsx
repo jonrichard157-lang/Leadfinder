@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
-import { Target, GlobeLock, Gauge, Bookmark } from 'lucide-react'
+import { Orbit, GlobeLock, Gauge, Bookmark } from 'lucide-react'
 
 interface AuthLayoutProps {
   title: string
@@ -22,10 +22,10 @@ export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProp
         <div className="mx-auto w-full max-w-sm">
           <Link href="/" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--color-signal-600)] text-white">
-              <Target size={18} />
+              <Orbit size={18} />
             </div>
             <span className="font-display text-lg font-semibold text-[var(--color-ink-900)]">
-              LeadFinder
+              OrbeLead
             </span>
           </Link>
 

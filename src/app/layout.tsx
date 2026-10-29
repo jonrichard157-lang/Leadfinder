@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "LeadFinder — Encontre empresas que precisam do seu serviço",
+  title: "OrbeLead — Encontre empresas que precisam do seu serviço",
   description:
     "Plataforma de prospecção comercial para freelancers, desenvolvedores e agências digitais. Encontre empresas locais sem website.",
 };

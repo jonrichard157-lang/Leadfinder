@@ -21,7 +21,7 @@ export function Hero() {
             Encontre empresas que precisam do seu serviço.
           </h1>
           <p className="mt-5 max-w-md text-balance text-lg leading-relaxed text-[var(--color-ink-600)]">
-            O LeadFinder localiza empresas locais sem presença digital — o ponto de partida
+            O OrbeLead localiza empresas locais sem presença digital — o ponto de partida
             ideal para freelancers, desenvolvedores e agências que vendem sites, sistemas e
             serviços digitais.
           </p>
