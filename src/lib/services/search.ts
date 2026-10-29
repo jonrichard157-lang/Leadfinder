@@ -13,6 +13,43 @@ interface RawGooglePlace {
   primaryTypeDisplayName?: { text?: string }
 }
 
+// O Google aceita redes sociais, links de WhatsApp e páginas de apps de agendamento como
+// "website". Para prospecção, esses negócios ainda não têm site próprio.
+const NON_WEBSITE_HOSTS = [
+  'instagram.com',
+  'facebook.com',
+  'fb.com',
+  'tiktok.com',
+  'youtube.com',
+  'x.com',
+  'twitter.com',
+  'linkedin.com',
+  'wa.me',
+  'whatsapp.com',
+  'linktr.ee',
+  'beacons.ai',
+  'bio.link',
+  'canva.com',
+  'canva.site',
+  'ifood.com.br',
+  'avec.app',
+  'belasis.app',
+  'booksy.com',
+  'trinks.com',
+]
+
+function isOwnWebsite(url?: string): boolean {
+  if (!url) return false
+  try {
+    const { protocol, hostname } = new URL(url)
+    if (!protocol.startsWith('http')) return false
+    const host = hostname.toLowerCase().replace(/^www\./, '')
+    return !NON_WEBSITE_HOSTS.some((d) => host === d || host.endsWith(`.${d}`))
+  } catch {
+    return false
+  }
+}
+
 /**
  * Normaliza uma string de cidade e estado para formato padrão (ex: "Curitiba, PR").
  */
@@ -82,7 +119,7 @@ export async function searchLocalPlaces(filters: SearchFilters): Promise<Lead[]>
     const places: RawGooglePlace[] = data.places || []
 
     const mappedLeads: Lead[] = places.map((p, idx) => {
-      const hasWebsite = Boolean(p.websiteUri && p.websiteUri.startsWith('http'))
+      const hasWebsite = isOwnWebsite(p.websiteUri)
       const phone = p.nationalPhoneNumber || p.internationalPhoneNumber || undefined
       const rating = Number(p.rating) || 0
       const reviewsCount = Number(p.userRatingCount) || 0
@@ -106,7 +143,8 @@ export async function searchLocalPlaces(filters: SearchFilters): Promise<Lead[]>
         state,
         phone,
         hasWebsite,
-        website: hasWebsite ? p.websiteUri : undefined,
+        // Mantém Instagram/WhatsApp mesmo sem site próprio: é um canal de contato com o lead.
+        website: p.websiteUri || undefined,
         rating,
         reviewsCount,
         opportunityScore,
