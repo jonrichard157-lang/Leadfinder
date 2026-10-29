@@ -42,7 +42,7 @@ export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProp
 
       <div className="hidden flex-col justify-center bg-[var(--color-ink-900)] px-16 md:flex">
         <p className="font-display text-2xl font-medium leading-snug text-white text-balance">
-          "Em duas semanas encontrei 30 leads qualificados sem gastar nada com anúncios."
+          “Em duas semanas encontrei 30 leads qualificados sem gastar nada com anúncios.”
         </p>
         <p className="mt-3 text-sm text-[var(--color-ink-300)]">— Time de prospecção, agência parceira</p>
 

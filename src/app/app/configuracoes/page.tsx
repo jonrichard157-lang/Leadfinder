@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Card } from '@/components/ui/Card'
@@ -36,14 +36,23 @@ export default function SettingsPage() {
   const [passwordSuccess, setPasswordSuccess] = useState(false)
   const [passwordError, setPasswordError] = useState<string | null>(null)
 
-  useEffect(() => {
+  // Sincroniza o formulário quando o perfil/usuário carrega (ajuste de estado durante o render,
+  // em vez de setState dentro de useEffect).
+  const syncKey = profile
+    ? `profile:${profile.id}:${profile.full_name ?? ''}:${profile.company ?? ''}`
+    : user
+      ? `user:${user.id}`
+      : null
+  const [syncedKey, setSyncedKey] = useState<string | null>(null)
+  if (syncKey !== syncedKey) {
+    setSyncedKey(syncKey)
     if (profile) {
       setName(profile.full_name || '')
       setCompany(profile.company || '')
     } else if (user) {
       setName(user.user_metadata?.full_name || '')
     }
-  }, [profile, user])
+  }
 
   async function handleSaveProfile(e: FormEvent) {
     e.preventDefault()

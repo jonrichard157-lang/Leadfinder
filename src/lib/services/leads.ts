@@ -82,9 +82,9 @@ export async function getSavedLeads(userId: string): Promise<Lead[]> {
       return []
     }
 
-    return data
-      .filter((row: any) => row.leads !== null)
-      .map((row: any) => mapDbLeadToLead(row.leads, row))
+    return (data as unknown as DbSavedLead[])
+      .filter((row): row is DbSavedLead & { leads: DbLead } => row.leads !== null)
+      .map((row) => mapDbLeadToLead(row.leads, row))
   } catch (err) {
     console.error('Falha inesperada ao buscar leads salvos:', err)
     return MOCK_LEADS.filter((l) => l.saved)

@@ -47,7 +47,7 @@ export function Hero() {
           <div className="rounded-xl border border-[var(--color-ink-100)] bg-white p-1.5 shadow-[0_1px_2px_rgba(17,26,46,0.06),0_12px_32px_-16px_rgba(17,26,46,0.18)]">
             <div className="flex items-center justify-between border-b border-[var(--color-ink-100)] px-4 py-3">
               <span className="text-xs font-medium text-[var(--color-ink-500)]">
-                Busca: "salões de beleza em Curitiba"
+                Busca: “salões de beleza em Curitiba”
               </span>
               <span className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-green-600)]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-green-600)]" />

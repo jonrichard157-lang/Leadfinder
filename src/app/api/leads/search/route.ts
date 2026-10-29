@@ -3,6 +3,11 @@ import { createClient } from '@/lib/supabase/server'
 import { searchLocalPlaces } from '@/lib/services/search'
 import type { SearchFilters, Lead } from '@/types'
 
+interface SavedLeadRef {
+  lead_id: string | null
+  leads: { place_id: string | null } | null
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -57,7 +62,7 @@ export async function POST(request: NextRequest) {
     try {
       await supabase.from('searches').insert({
         user_id: user.id,
-        filters: filters as any,
+        filters,
         results_count: rawLeads.length,
       })
     } catch (searchHistoryErr) {
@@ -72,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     const savedPlaceIds = new Set<string>()
     if (savedRecords) {
-      savedRecords.forEach((r: any) => {
+      ;(savedRecords as unknown as SavedLeadRef[]).forEach((r) => {
         if (r.leads?.place_id) savedPlaceIds.add(r.leads.place_id)
         if (r.lead_id) savedPlaceIds.add(r.lead_id)
       })
