@@ -26,6 +26,7 @@ No SQL Editor do Supabase, execute em ordem:
 
 1. `supabase/schema.sql` — tabelas, RLS e criação automática de perfis
 2. `supabase/migrations/002_team_access_and_limits.sql` — limites de plano e acesso da equipe
+3. `supabase/migrations/003_backfill_profiles.sql` — cria perfis para contas antigas
 
 ## Planos e limites
 
