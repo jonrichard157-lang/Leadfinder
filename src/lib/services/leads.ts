@@ -1,6 +1,15 @@
 import { supabase } from '@/lib/supabase'
 import type { Lead, LeadNote, LeadStatus, DashboardStats } from '@/types'
-import { MOCK_LEADS } from '@/mocks/leads'
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * Leads vindos da busca usam o place_id (ex: "gp_ChIJ..."); os do banco usam o UUID.
+ * Filtrar `id` (uuid) com um place_id faz o Postgres rejeitar a consulta inteira.
+ */
+function leadLookupColumn(leadId: string): 'id' | 'place_id' {
+  return UUID_RE.test(leadId) ? 'id' : 'place_id'
+}
 
 interface DbLead {
   id: string
@@ -75,7 +84,7 @@ export async function getSavedLeads(userId: string): Promise<Lead[]> {
 
     if (error) {
       console.error('Erro ao buscar leads salvos:', error)
-      return MOCK_LEADS.filter((l) => l.saved)
+      return []
     }
 
     if (!data || data.length === 0) {
@@ -87,7 +96,7 @@ export async function getSavedLeads(userId: string): Promise<Lead[]> {
       .map((row) => mapDbLeadToLead(row.leads, row))
   } catch (err) {
     console.error('Falha inesperada ao buscar leads salvos:', err)
-    return MOCK_LEADS.filter((l) => l.saved)
+    return []
   }
 }
 
@@ -100,7 +109,7 @@ export async function getLeadById(leadId: string, userId?: string): Promise<Lead
     const { data: dbLead, error } = await supabase
       .from('leads')
       .select('*')
-      .or(`id.eq.${leadId},place_id.eq.${leadId}`)
+      .eq(leadLookupColumn(leadId), leadId)
       .maybeSingle()
 
     if (!error && dbLead) {
@@ -122,12 +131,13 @@ export async function getLeadById(leadId: string, userId?: string): Promise<Lead
       return mapDbLeadToLead(dbLead as DbLead, savedRecord)
     }
 
-    // 2. Fallback caso o lead seja dos mocks
-    const mockLead = MOCK_LEADS.find((l) => l.id === leadId)
-    return mockLead || null
+    if (error) {
+      console.error('Erro ao buscar lead por ID:', error)
+    }
+    return null
   } catch (err) {
     console.error('Erro ao buscar lead por ID:', err)
-    return MOCK_LEADS.find((l) => l.id === leadId) || null
+    return null
   }
 }
 
@@ -145,7 +155,7 @@ export async function toggleSaveLead(
     const { data: existingLead } = await supabase
       .from('leads')
       .select('id')
-      .or(`id.eq.${lead.id},place_id.eq.${lead.id}`)
+      .eq(leadLookupColumn(lead.id), lead.id)
       .maybeSingle()
 
     if (!existingLead) {
@@ -315,14 +325,18 @@ export async function addLeadNote(
  */
 export async function getUserDashboardStats(userId: string): Promise<DashboardStats> {
   try {
-    const savedLeads = await getSavedLeads(userId)
+    const [savedLeads, { data: searches }] = await Promise.all([
+      getSavedLeads(userId),
+      supabase.from('searches').select('results_count').eq('user_id', userId),
+    ])
 
+    const leadsFound = (searches ?? []).reduce((sum, s) => sum + (s.results_count || 0), 0)
     const leadsSaved = savedLeads.length
     const leadsWithoutWebsite = savedLeads.filter((l) => !l.hasWebsite).length
     const highOpportunity = savedLeads.filter((l) => l.opportunityScore >= 75).length
 
     return {
-      leadsFound: leadsSaved > 0 ? leadsSaved * 3 + 12 : 0,
+      leadsFound,
       leadsSaved,
       leadsWithoutWebsite,
       highOpportunity,

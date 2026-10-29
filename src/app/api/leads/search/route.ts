@@ -52,10 +52,16 @@ export async function POST(request: NextRequest) {
       source: l.source,
     }))
 
+    // ignoreDuplicates: a RLS de `leads` só permite INSERT, então um upsert que tentasse
+    // atualizar linhas existentes falharia o lote inteiro.
     if (leadsToUpsert.length > 0) {
-      await supabase
+      const { error: upsertError } = await supabase
         .from('leads')
-        .upsert(leadsToUpsert, { onConflict: 'place_id' })
+        .upsert(leadsToUpsert, { onConflict: 'place_id', ignoreDuplicates: true })
+
+      if (upsertError) {
+        console.warn('Erro ao salvar leads em cache:', upsertError)
+      }
     }
 
     // 3. Registra a busca no histórico de buscas do usuário
