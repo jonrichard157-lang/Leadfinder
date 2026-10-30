@@ -1,4 +1,6 @@
-import type { InputHTMLAttributes, LabelHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react'
+'use client'
+
+import { useState, type InputHTMLAttributes, type LabelHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from 'react'
 import { cn } from '@/lib/utils'
 
 export function Label({ className, ...props }: LabelHTMLAttributes<HTMLLabelElement>) {
@@ -31,6 +33,56 @@ export function Input({ className, icon, ...props }: InputProps) {
         {...props}
       />
     </div>
+  )
+}
+
+interface NumberInputProps extends Omit<InputProps, 'type' | 'value' | 'onChange' | 'min' | 'max'> {
+  value: number
+  onValueChange: (value: number) => void
+  min?: number
+  max?: number
+}
+
+/**
+ * Campo de número inteiro. Um <input type="number"> controlado por um número mantém o
+ * zero à esquerda ("05"), porque o React considera "05" igual a 5 e não corrige o texto.
+ */
+export function NumberInput({ value, onValueChange, min = 0, max, onFocus, onBlur, ...props }: NumberInputProps) {
+  const [text, setText] = useState(String(value))
+  const [syncedValue, setSyncedValue] = useState(value)
+
+  // O valor mudou por fora (ex.: formulário recarregado): mostra o novo número.
+  if (value !== syncedValue) {
+    setSyncedValue(value)
+    setText(String(value))
+  }
+
+  function handleChange(raw: string) {
+    const digits = raw.replace(/\D/g, '').replace(/^0+(?=\d)/, '')
+    let next = digits === '' ? min : Number(digits)
+    if (max !== undefined && next > max) next = max
+    setText(digits === '' ? '' : String(next))
+    setSyncedValue(next)
+    onValueChange(next)
+  }
+
+  return (
+    <Input
+      type="text"
+      inputMode="numeric"
+      autoComplete="off"
+      value={text}
+      onChange={(e) => handleChange(e.target.value)}
+      onFocus={(e) => {
+        e.target.select()
+        onFocus?.(e)
+      }}
+      onBlur={(e) => {
+        setText(String(value))
+        onBlur?.(e)
+      }}
+      {...props}
+    />
   )
 }
 

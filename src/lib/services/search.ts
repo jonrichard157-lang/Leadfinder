@@ -1,16 +1,31 @@
 import { calculateOpportunityScore } from '@/lib/scoring'
 import type { Lead, SearchFilters } from '@/types'
 
+interface LatLng {
+  latitude: number
+  longitude: number
+}
+
 interface RawGooglePlace {
   id?: string
   displayName?: { text?: string }
   formattedAddress?: string
+  location?: LatLng
   nationalPhoneNumber?: string
   internationalPhoneNumber?: string
   websiteUri?: string
   rating?: number
   userRatingCount?: number
   primaryTypeDisplayName?: { text?: string }
+}
+
+interface Rectangle {
+  rectangle: { low: LatLng; high: LatLng }
+}
+
+interface TextSearchQuery {
+  textQuery: string
+  locationRestriction?: Rectangle
 }
 
 // O Google aceita redes sociais, links de WhatsApp e páginas de apps de agendamento como
@@ -61,9 +76,80 @@ function parseLocation(locationString: string): { city: string; state: string } 
   return { city: locationString.trim(), state: 'BR' }
 }
 
-// Cada página da Text Search é uma requisição cobrada pelo Google (até 20 resultados cada).
-const MAX_PAGES = 3
+// Cada requisição à Text Search é cobrada pelo Google (SKU Enterprise, por causa de telefone,
+// site e avaliações) e traz até 20 empresas. MAX_REQUESTS limita o custo de uma busca.
 const TARGET_RESULTS = 20
+const MAX_REQUESTS = 6
+const FIELD_MASK = [
+  'places.id',
+  'places.displayName',
+  'places.formattedAddress',
+  'places.location',
+  'places.nationalPhoneNumber',
+  'places.internationalPhoneNumber',
+  'places.websiteUri',
+  'places.rating',
+  'places.userRatingCount',
+  'places.primaryTypeDisplayName',
+  'nextPageToken',
+].join(',')
+
+async function fetchTextSearchPage(
+  apiKey: string,
+  query: TextSearchQuery,
+  pageToken?: string
+): Promise<{ places: RawGooglePlace[]; nextPageToken?: string }> {
+  const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': apiKey,
+      'X-Goog-FieldMask': FIELD_MASK,
+    },
+    body: JSON.stringify({
+      ...query,
+      languageCode: 'pt-BR',
+      regionCode: 'BR',
+      pageSize: 20,
+      pageToken,
+    }),
+  })
+
+  if (!response.ok) {
+    console.error('Google Places API retornou erro:', response.status, await response.text())
+    throw new Error('Não foi possível consultar o Google Places. Tente novamente em instantes.')
+  }
+
+  const data = await response.json()
+  return { places: data.places || [], nextPageToken: data.nextPageToken }
+}
+
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b)
+  return sorted[Math.floor(sorted.length / 2)]
+}
+
+/**
+ * Divide um quadrado de lado 2 × radiusKm, centrado em `center`, em quatro regiões.
+ * Buscar em cada região traz empresas que não aparecem nos 60 primeiros resultados da cidade.
+ */
+function quadrants(center: LatLng, radiusKm: number): Rectangle[] {
+  const dLat = radiusKm / 111
+  const dLng = radiusKm / (111 * Math.cos((center.latitude * Math.PI) / 180))
+  const { latitude: lat, longitude: lng } = center
+
+  return [
+    [lat, lng - dLng, lat + dLat, lng],
+    [lat, lng, lat + dLat, lng + dLng],
+    [lat - dLat, lng - dLng, lat, lng],
+    [lat - dLat, lng, lat, lng + dLng],
+  ].map(([lowLat, lowLng, highLat, highLng]) => ({
+    rectangle: {
+      low: { latitude: lowLat, longitude: lowLng },
+      high: { latitude: highLat, longitude: highLng },
+    },
+  }))
+}
 
 /**
  * Busca empresas locais usando a Google Places API (New).
@@ -84,97 +170,96 @@ export async function searchLocalPlaces(filters: SearchFilters): Promise<Lead[]>
       ? filters.category
       : 'comércios e serviços'
 
-  const textQuery = `${categoryQuery} em ${filters.location}`
   const { city, state } = parseLocation(filters.location)
 
   const leads: Lead[] = []
-  let pageToken: string | undefined
+  const seenIds = new Set<string>()
+  const points: LatLng[] = []
+  let requests = 0
 
-  // Como o filtro "sem site" descarta boa parte dos resultados, busca mais páginas até
-  // atingir TARGET_RESULTS ou acabar a paginação.
-  for (let page = 0; page < MAX_PAGES; page++) {
-    const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask':
-          'places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.primaryTypeDisplayName,nextPageToken',
-      },
-      body: JSON.stringify({
-        textQuery,
-        languageCode: 'pt-BR',
-        regionCode: 'BR',
-        pageSize: 20,
-        pageToken,
-      }),
-    })
-
-    if (!response.ok) {
-      console.error('Google Places API retornou erro:', response.status, await response.text())
-      throw new Error('Não foi possível consultar o Google Places. Tente novamente em instantes.')
-    }
-
-    const data = await response.json()
-    const places: RawGooglePlace[] = data.places || []
-
-    const mappedLeads: Lead[] = places.map((p, idx) => {
-      const hasWebsite = isOwnWebsite(p.websiteUri)
-      const phone = p.nationalPhoneNumber || p.internationalPhoneNumber || undefined
-      const rating = Number(p.rating) || 0
-      const reviewsCount = Number(p.userRatingCount) || 0
-      const name = p.displayName?.text || `Empresa ${idx + 1}`
-      const category = p.primaryTypeDisplayName?.text || filters.category || 'Serviços'
-
-      const opportunityScore = calculateOpportunityScore({
-        hasWebsite,
-        rating,
-        reviewsCount,
-        phone,
-        category,
-      })
-
-      return {
-        id: p.id ? `gp_${p.id}` : crypto.randomUUID(),
-        name,
-        category,
-        address: p.formattedAddress || filters.location,
-        city,
-        state,
-        phone,
-        hasWebsite,
-        // Mantém Instagram/WhatsApp mesmo sem site próprio: é um canal de contato com o lead.
-        website: p.websiteUri || undefined,
-        rating,
-        reviewsCount,
-        opportunityScore,
-        status: 'novo',
-        saved: false,
-        source: 'google_places',
-        foundAt: new Date().toISOString(),
+  function collect(places: RawGooglePlace[]) {
+    for (const p of places) {
+      if (p.id) {
+        if (seenIds.has(p.id)) continue
+        seenIds.add(p.id)
       }
-    })
+      if (p.location) points.push(p.location)
 
-    // Aplica os filtros solicitados pelo usuário
-    leads.push(...filterLeads(mappedLeads, filters))
+      const lead = toLead(p, filters, city, state)
+      if (leads.length < TARGET_RESULTS && matchesFilters(lead, filters)) leads.push(lead)
+    }
+  }
 
-    pageToken = data.nextPageToken
-    if (!pageToken || leads.length >= TARGET_RESULTS) break
+  const hasEnough = () => leads.length >= TARGET_RESULTS || requests >= MAX_REQUESTS
+
+  // 1. Busca na cidade inteira (até 3 páginas, o máximo que o Google devolve por consulta).
+  const cityQuery: TextSearchQuery = { textQuery: `${categoryQuery} em ${filters.location}` }
+  let pageToken: string | undefined
+  for (let page = 0; page < 3 && !hasEnough(); page++) {
+    const result = await fetchTextSearchPage(apiKey, cityQuery, pageToken)
+    requests++
+    collect(result.places)
+    pageToken = result.nextPageToken
+    if (!pageToken) break
+  }
+
+  // 2. O filtro "sem site" e a exigência de contato descartam boa parte das empresas. Se ainda
+  //    faltam resultados, busca região por região ao redor do centro encontrado (raio do filtro),
+  //    parando assim que atingir TARGET_RESULTS.
+  if (!hasEnough() && points.length > 0) {
+    const center = {
+      latitude: median(points.map((p) => p.latitude)),
+      longitude: median(points.map((p) => p.longitude)),
+    }
+    for (const locationRestriction of quadrants(center, filters.radiusKm)) {
+      if (hasEnough()) break
+      const result = await fetchTextSearchPage(apiKey, { textQuery: categoryQuery, locationRestriction })
+      requests++
+      collect(result.places)
+    }
   }
 
   return leads
 }
 
+function toLead(p: RawGooglePlace, filters: SearchFilters, city: string, state: string): Lead {
+  const hasWebsite = isOwnWebsite(p.websiteUri)
+  const phone = p.nationalPhoneNumber || p.internationalPhoneNumber || undefined
+  const rating = Number(p.rating) || 0
+  const reviewsCount = Number(p.userRatingCount) || 0
+  const category = p.primaryTypeDisplayName?.text || filters.category || 'Serviços'
+
+  return {
+    id: p.id ? `gp_${p.id}` : crypto.randomUUID(),
+    name: p.displayName?.text || 'Empresa sem nome',
+    category,
+    address: p.formattedAddress || filters.location,
+    city,
+    state,
+    phone,
+    hasWebsite,
+    // Mantém Instagram/WhatsApp mesmo sem site próprio: é um canal de contato com o lead.
+    website: p.websiteUri || undefined,
+    rating,
+    reviewsCount,
+    opportunityScore: calculateOpportunityScore({ hasWebsite, rating, reviewsCount, phone, category }),
+    status: 'novo',
+    saved: false,
+    source: 'google_places',
+    foundAt: new Date().toISOString(),
+  }
+}
+
 /**
- * Filtra leads de acordo com os critérios do usuário.
+ * Critérios do usuário. Empresas sem telefone nem link (site, Instagram, WhatsApp)
+ * não servem para prospecção e ficam de fora.
  */
-function filterLeads(leads: Lead[], filters: SearchFilters): Lead[] {
-  return leads.filter((lead) => {
-    if (filters.onlyWithoutWebsite && lead.hasWebsite) return false
-    if (filters.minRating > 0 && lead.rating < filters.minRating) return false
-    if (filters.minReviews > 0 && lead.reviewsCount < filters.minReviews) return false
-    return true
-  })
+function matchesFilters(lead: Lead, filters: SearchFilters): boolean {
+  if (!lead.phone && !lead.website) return false
+  if (filters.onlyWithoutWebsite && lead.hasWebsite) return false
+  if (filters.minRating > 0 && lead.rating < filters.minRating) return false
+  if (filters.minReviews > 0 && lead.reviewsCount < filters.minReviews) return false
+  return true
 }
 
 /**
@@ -218,7 +303,10 @@ function generateContextualLeads(filters: SearchFilters): Lead[] {
     'Rua Santa Catarina',
   ]
 
-  const generated: Lead[] = sampleNames.map((name, i) => {
+  // Três variações de cada nome para simular uma busca com TARGET_RESULTS empresas.
+  const names = ['', ' Centro', ' Zona Sul'].flatMap((suffix) => sampleNames.map((n) => `${n}${suffix}`))
+
+  const generated: Lead[] = names.map((name, i) => {
     // 70% das empresas geradas sem site para atender o foco do SaaS
     const hasWebsite = i % 3 === 0
     const rating = Number((3.8 + (i % 12) * 0.1).toFixed(1))
@@ -254,6 +342,6 @@ function generateContextualLeads(filters: SearchFilters): Lead[] {
     }
   })
 
-  return filterLeads(generated, filters)
+  return generated.filter((lead) => matchesFilters(lead, filters)).slice(0, TARGET_RESULTS)
 }
 

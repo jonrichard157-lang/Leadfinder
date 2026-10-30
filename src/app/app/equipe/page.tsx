@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Copy, Check, KeyRound, Loader2, ShieldAlert, UserMinus, Ban } from 'lucide-react'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Card } from '@/components/ui/Card'
-import { Input, Label } from '@/components/ui/Input'
+import { Input, Label, NumberInput } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { useUser } from '@/hooks/useUser'
@@ -147,24 +147,22 @@ export default function TeamPage() {
             </div>
             <div>
               <Label htmlFor="code-uses">Usos</Label>
-              <Input
+              <NumberInput
                 id="code-uses"
-                type="number"
                 min={1}
                 max={100}
                 value={maxUses}
-                onChange={(e) => setMaxUses(Number(e.target.value))}
+                onValueChange={setMaxUses}
               />
             </div>
             <div>
               <Label htmlFor="code-days">Validade (dias)</Label>
-              <Input
+              <NumberInput
                 id="code-days"
-                type="number"
                 min={1}
                 max={365}
                 value={validDays}
-                onChange={(e) => setValidDays(Number(e.target.value))}
+                onValueChange={setValidDays}
               />
             </div>
             <Button type="submit" disabled={creating} icon={creating ? <Loader2 size={16} className="animate-spin" /> : <KeyRound size={16} />}>

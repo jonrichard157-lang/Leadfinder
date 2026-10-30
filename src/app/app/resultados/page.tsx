@@ -16,11 +16,23 @@ import { AppLayout } from '@/components/layout/AppLayout'
 import { LeadCard } from '@/components/leads/LeadCard'
 import { Button } from '@/components/ui/Button'
 import { useUser } from '@/hooks/useUser'
-import { toggleSaveLead } from '@/lib/services/leads'
+import { getSavedLeadKeys, toggleSaveLead } from '@/lib/services/leads'
+import { readSearchCache, writeSearchCache } from '@/lib/searchCache'
 import { exportLeadsToCsv } from '@/lib/export'
 import type { Lead } from '@/types'
 
-function ResultsContent() {
+function byScore(a: Lead, b: Lead) {
+  return b.opportunityScore - a.opportunityScore
+}
+
+// `key` recria a página a cada busca diferente; a mesma busca reaproveita o resultado guardado.
+function ResultsRoute() {
+  const searchParams = useSearchParams()
+  const cacheKey = searchParams.toString()
+  return <ResultsContent key={cacheKey} cacheKey={cacheKey} />
+}
+
+function ResultsContent({ cacheKey }: { cacheKey: string }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, refreshProfile } = useUser()
@@ -32,18 +44,36 @@ function ResultsContent() {
   const minRating = Number(searchParams.get('minRating')) || 0
   const minReviews = Number(searchParams.get('minReviews')) || 0
 
-  const [leads, setLeads] = useState<Lead[]>([])
-  const [loading, setLoading] = useState(true)
+  const [cached] = useState(() => readSearchCache(cacheKey))
+  const [leads, setLeads] = useState<Lead[]>(() => (cached ? [...cached].sort(byScore) : []))
+  const [loading, setLoading] = useState(!cached)
   const [error, setError] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [sortByScore, setSortByScore] = useState(true)
   const [, startTransition] = useTransition()
 
-  useEffect(() => {
-    async function fetchSearch() {
-      setLoading(true)
-      setError(null)
+  const userId = user?.id
 
+  // Resultado guardado: só atualiza "Salvo", que pode ter mudado na página de detalhes.
+  useEffect(() => {
+    if (!cached || !userId) return
+    let active = true
+    getSavedLeadKeys(userId).then((keys) => {
+      if (active) setLeads((prev) => prev.map((l) => ({ ...l, saved: keys.has(l.id) })))
+    })
+    return () => {
+      active = false
+    }
+  }, [cached, userId])
+
+  useEffect(() => {
+    if (!loading && !error) writeSearchCache(cacheKey, leads)
+  }, [cacheKey, leads, loading, error])
+
+  useEffect(() => {
+    if (cached) return
+
+    async function fetchSearch() {
       try {
         const res = await fetch('/api/leads/search', {
           method: 'POST',
@@ -69,8 +99,7 @@ function ResultsContent() {
         const fetchedLeads: Lead[] = data.leads || []
 
         // Ordena por padrão pelos melhores Opportunity Scores
-        fetchedLeads.sort((a, b) => b.opportunityScore - a.opportunityScore)
-        setLeads(fetchedLeads)
+        setLeads(fetchedLeads.sort(byScore))
       } catch (err: unknown) {
         console.error('Erro na busca de leads:', err)
         const msg = err instanceof Error ? err.message : 'Falha na busca.'
@@ -81,7 +110,7 @@ function ResultsContent() {
     }
 
     fetchSearch()
-  }, [location, category, radiusKm, onlyWithoutWebsite, minRating, minReviews])
+  }, [cached, location, category, radiusKm, onlyWithoutWebsite, minRating, minReviews])
 
   async function handleToggleSave(id: string) {
     if (!user) {
@@ -113,7 +142,7 @@ function ResultsContent() {
     setLeads((prev) => {
       const sorted = [...prev]
       if (!sortByScore) {
-        return sorted.sort((a, b) => b.opportunityScore - a.opportunityScore)
+        return sorted.sort(byScore)
       } else {
         return sorted.sort((a, b) => b.rating - a.rating)
       }
@@ -250,7 +279,7 @@ export default function ResultsPage() {
         </AppLayout>
       }
     >
-      <ResultsContent />
+      <ResultsRoute />
     </Suspense>
   )
 }

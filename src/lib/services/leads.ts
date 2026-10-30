@@ -101,6 +101,28 @@ export async function getSavedLeads(userId: string): Promise<Lead[]> {
 }
 
 /**
+ * IDs (UUID e place_id) dos leads salvos pelo usuário, para marcar "Salvo" em resultados de busca.
+ */
+export async function getSavedLeadKeys(userId: string): Promise<Set<string>> {
+  const keys = new Set<string>()
+  const { data, error } = await supabase
+    .from('saved_leads')
+    .select('lead_id, leads(place_id)')
+    .eq('user_id', userId)
+
+  if (error) {
+    console.error('Erro ao buscar leads salvos:', error)
+    return keys
+  }
+
+  ;(data as unknown as { lead_id: string; leads: { place_id: string | null } | null }[]).forEach((r) => {
+    keys.add(r.lead_id)
+    if (r.leads?.place_id) keys.add(r.leads.place_id)
+  })
+  return keys
+}
+
+/**
  * Busca os detalhes de um lead por ID.
  */
 export async function getLeadById(leadId: string, userId?: string): Promise<Lead | null> {

@@ -13,6 +13,7 @@ import {
   Loader2,
   Calendar,
   MessageSquare,
+  MessageCircle,
 } from 'lucide-react'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Card } from '@/components/ui/Card'
@@ -25,6 +26,7 @@ import { useUser } from '@/hooks/useUser'
 import { getLeadById, toggleSaveLead, updateLeadStatus, addLeadNote } from '@/lib/services/leads'
 import type { Lead, LeadStatus } from '@/types'
 import { formatDate } from '@/lib/utils'
+import { whatsappUrl } from '@/lib/contact'
 
 const STATUS_OPTIONS: { id: LeadStatus; label: string }[] = [
   { id: 'novo', label: 'Novo' },
@@ -196,12 +198,25 @@ export default function LeadDetailPage() {
               <Phone size={16} className="mt-0.5 text-[var(--color-ink-400)] shrink-0" />
               <p className="text-sm text-[var(--color-ink-900)]">
                 {lead.phone ? (
-                  <a
-                    href={`tel:${lead.phone}`}
-                    className="text-[var(--color-signal-600)] hover:underline"
-                  >
-                    {lead.phone}
-                  </a>
+                  <>
+                    <a
+                      href={`tel:${lead.phone}`}
+                      className="text-[var(--color-signal-600)] hover:underline"
+                    >
+                      {lead.phone}
+                    </a>
+                    {whatsappUrl(lead.phone) && (
+                      <a
+                        href={whatsappUrl(lead.phone)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="ml-2 inline-flex items-center gap-1 rounded-md bg-[var(--color-green-100)] px-2 py-0.5 text-xs font-medium text-[var(--color-green-600)] hover:brightness-95"
+                      >
+                        <MessageCircle size={12} />
+                        WhatsApp
+                      </a>
+                    )}
+                  </>
                 ) : (
                   'Telefone não disponível'
                 )}

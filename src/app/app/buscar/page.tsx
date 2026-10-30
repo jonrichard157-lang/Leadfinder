@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { MapPin, Search, Sparkles } from 'lucide-react'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Card } from '@/components/ui/Card'
-import { Input, Label, Select } from '@/components/ui/Input'
+import { Input, Label, NumberInput, Select } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { CATEGORIES } from '@/mocks/leads'
 import type { SearchFilters } from '@/types'
@@ -130,13 +130,11 @@ export default function SearchLeadsPage() {
 
             <div>
               <Label htmlFor="minReviews">Quantidade mínima de avaliações</Label>
-              <Input
+              <NumberInput
                 id="minReviews"
-                type="number"
                 min={0}
-                step={1}
                 value={filters.minReviews}
-                onChange={(e) => setFilters((f) => ({ ...f, minReviews: Number(e.target.value) }))}
+                onValueChange={(minReviews) => setFilters((f) => ({ ...f, minReviews }))}
               />
             </div>
           </div>
