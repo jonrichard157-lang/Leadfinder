@@ -9,10 +9,17 @@ import { Input, Label } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { supabase } from '@/lib/supabase'
 
+// Só aceita caminhos internos do painel. Evita que `?redirect=https://...` ou `//site`
+// mande o usuário para fora do OrbeLead logo após o login.
+function safeRedirect(value: string | null): string {
+  if (!value || !/^\/app(?:[/?#]|$)/.test(value) || value.includes('\\')) return '/app'
+  return value
+}
+
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectPath = searchParams.get('redirect') || '/app'
+  const redirectPath = safeRedirect(searchParams.get('redirect'))
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

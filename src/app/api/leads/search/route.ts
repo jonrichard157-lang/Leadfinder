@@ -1,7 +1,19 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { searchLocalPlaces } from '@/lib/services/search'
 import type { SearchFilters, Lead } from '@/types'
+
+function clamp(value: unknown, min: number, max: number, fallback: number): number {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return fallback
+  return Math.min(max, Math.max(min, n))
+}
+
+function text(value: unknown, fallback: string, maxLength: number): string {
+  const s = typeof value === 'string' ? value.trim().slice(0, maxLength) : ''
+  return s || fallback
+}
 
 interface SavedLeadRef {
   lead_id: string | null
@@ -31,14 +43,15 @@ export async function POST(request: NextRequest) {
       throw new Error(`Falha ao verificar a cota de buscas: ${quotaError.message}`)
     }
 
-    const body = await request.json()
+    const body = await request.json().catch(() => ({}))
+    // Limites protegem o custo do Google: o raio define a área de cada consulta.
     const filters: SearchFilters = {
-      location: body.location || 'Curitiba, PR',
-      category: body.category || 'Todas as categorias',
-      radiusKm: Number(body.radiusKm) || 10,
+      location: text(body.location, 'Curitiba, PR', 120),
+      category: text(body.category, 'Todas as categorias', 80),
+      radiusKm: clamp(body.radiusKm, 1, 50, 10),
       onlyWithoutWebsite: body.onlyWithoutWebsite !== false,
-      minRating: Number(body.minRating) || 0,
-      minReviews: Number(body.minReviews) || 0,
+      minRating: clamp(body.minRating, 0, 5, 0),
+      minReviews: Math.round(clamp(body.minReviews, 0, 100000, 0)),
     }
 
     // 1. Busca leads através do provedor (Google Places API / Gerador Contextual)
@@ -61,12 +74,19 @@ export async function POST(request: NextRequest) {
       source: l.source,
     }))
 
-    // ignoreDuplicates: a RLS de `leads` só permite INSERT, então um upsert que tentasse
-    // atualizar linhas existentes falharia o lote inteiro.
+    // O catálogo `leads` é compartilhado entre todos os usuários, então só o servidor grava nele
+    // (service role). Assim os dados vêm sempre do Google e são atualizados a cada busca.
+    // Sem SUPABASE_SERVICE_ROLE_KEY, usa a sessão do usuário e só insere empresas novas
+    // (funciona apenas enquanto a migração 004 não for aplicada).
     if (leadsToUpsert.length > 0) {
-      const { error: upsertError } = await supabase
-        .from('leads')
-        .upsert(leadsToUpsert, { onConflict: 'place_id', ignoreDuplicates: true })
+      const admin = createAdminClient()
+      const { error: upsertError } = admin
+        ? await admin
+            .from('leads')
+            .upsert(leadsToUpsert, { onConflict: 'place_id' })
+        : await supabase
+            .from('leads')
+            .upsert(leadsToUpsert, { onConflict: 'place_id', ignoreDuplicates: true })
 
       if (upsertError) {
         console.warn('Erro ao salvar leads em cache:', upsertError)

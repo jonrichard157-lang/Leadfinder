@@ -171,9 +171,8 @@ export async function toggleSaveLead(
   lead: Lead
 ): Promise<{ saved: boolean; lead: Lead; error?: string }> {
   try {
-    // 1. Garante que o lead exista na tabela `leads`
-    let targetLeadId = lead.id
-
+    // 1. O lead precisa existir no catálogo `leads`. Só o servidor grava nele (rota de busca),
+    //    para que nenhum usuário consiga inserir dados falsos vistos pelos demais.
     const { data: existingLead } = await supabase
       .from('leads')
       .select('id')
@@ -181,35 +180,14 @@ export async function toggleSaveLead(
       .maybeSingle()
 
     if (!existingLead) {
-      const { data: newLead, error: insertLeadError } = await supabase
-        .from('leads')
-        .insert({
-          place_id: lead.id,
-          name: lead.name,
-          category: lead.category,
-          address: lead.address,
-          city: lead.city,
-          state: lead.state,
-          phone: lead.phone || null,
-          has_website: lead.hasWebsite,
-          website: lead.website || null,
-          rating: lead.rating,
-          reviews_count: lead.reviewsCount,
-          opportunity_score: lead.opportunityScore,
-          source: lead.source || 'google_places',
-        })
-        .select()
-        .single()
-
-      if (insertLeadError || !newLead) {
-        console.error('Erro ao inserir lead no banco:', insertLeadError)
-        return { saved: lead.saved, lead, error: 'Não foi possível salvar o lead.' }
+      return {
+        saved: lead.saved,
+        lead,
+        error: 'Não foi possível salvar o lead. Refaça a busca e tente novamente.',
       }
-
-      targetLeadId = newLead.id
-    } else {
-      targetLeadId = existingLead.id
     }
+
+    const targetLeadId: string = existingLead.id
 
     // 2. Verifica se já está salvo pelo usuário
     const { data: existingSaved } = await supabase
