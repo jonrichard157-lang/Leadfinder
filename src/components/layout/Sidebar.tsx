@@ -7,19 +7,21 @@ import { cn } from '@/lib/utils'
 import { Logo } from '@/components/brand/Logo'
 import { useUser } from '@/hooks/useUser'
 import { getNavItems } from './nav'
+import { getPlan } from '@/lib/billing/catalog'
 
 export function Sidebar() {
   const pathname = usePathname()
   const { profile, isTeam, isAdmin, signOut } = useUser()
 
-  const planName = profile?.plan ? profile.plan.charAt(0).toUpperCase() + profile.plan.slice(1) : 'Free'
+  const planName = getPlan(profile?.plan)?.name ?? 'Grátis'
   // Os contadores zeram no banco na primeira ação do mês; até lá, o mês anterior não conta
   const isCurrentMonth = profile?.usage_month?.slice(0, 7) === new Date().toISOString().slice(0, 7)
   const used = isCurrentMonth ? (profile?.leads_used_this_month ?? 0) : 0
   const limit = profile?.monthly_lead_limit ?? 10
   const searchesUsed = isCurrentMonth ? (profile?.searches_used_this_month ?? 0) : 0
   const searchLimit = profile?.monthly_search_limit ?? 10
-  const unlimitedSearches = profile?.plan === 'pro' || profile?.plan === 'agencia'
+  const extraSearches = profile?.extra_searches ?? 0
+  const extraLeads = profile?.extra_leads ?? 0
   const usagePercentage = Math.min(100, Math.round((used / (limit || 1)) * 100))
 
   return (
@@ -78,8 +80,19 @@ export function Sidebar() {
               />
             </div>
             <p className="mt-2 text-xs text-[var(--color-ink-500)]">
-              {unlimitedSearches ? 'Buscas ilimitadas' : `${searchesUsed} de ${searchLimit} buscas este mês`}
+              {searchesUsed} de {searchLimit} buscas este mês
             </p>
+            {(extraSearches > 0 || extraLeads > 0) && (
+              <p className="mt-1 text-xs text-[var(--color-ink-500)]">
+                Créditos: {extraSearches} buscas · {extraLeads} leads
+              </p>
+            )}
+            <Link
+              href="/app/assinatura"
+              className="mt-2 inline-block text-xs font-medium text-[var(--color-signal-600)] hover:underline"
+            >
+              Fazer upgrade ou comprar créditos
+            </Link>
           </div>
         )}
 

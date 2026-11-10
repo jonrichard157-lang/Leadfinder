@@ -3,12 +3,17 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
+import type { AccountType, PlanId } from '@/lib/billing/catalog'
 
 export interface UserProfileData {
   id: string
   full_name: string | null
   company: string | null
-  plan: 'free' | 'pro' | 'agencia'
+  plan: PlanId
+  account_type: AccountType
+  plan_expires_at: string | null
+  extra_searches: number
+  extra_leads: number
   role: 'user' | 'team' | 'admin'
   monthly_lead_limit: number
   leads_used_this_month: number

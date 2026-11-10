@@ -52,19 +52,9 @@ export interface DashboardStats {
   highOpportunity: number
 }
 
-export type PlanId = 'free' | 'pro' | 'agencia'
-
-export interface Plan {
-  id: PlanId
-  name: string
-  price: number
-  priceLabel: string
-  billingPeriod: 'mês'
-  description: string
-  features: string[]
-  highlighted?: boolean
-  ctaLabel: string
-}
+// Planos e pacotes de créditos ficam em src/lib/billing/catalog.ts.
+import type { PlanId } from '@/lib/billing/catalog'
+export type { PlanId }
 
 export interface UserProfile {
   id: string

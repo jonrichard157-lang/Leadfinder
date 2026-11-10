@@ -12,6 +12,7 @@ import { supabase } from '@/lib/supabase'
 export default function SignupPage() {
   const router = useRouter()
   const [name, setName] = useState('')
+  const [accountType, setAccountType] = useState<'individual' | 'business'>('individual')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -30,6 +31,7 @@ export default function SignupPage() {
         options: {
           data: {
             full_name: name,
+            account_type: accountType,
           },
         },
       })
@@ -97,6 +99,39 @@ export default function SignupPage() {
               <span>{error}</span>
             </div>
           )}
+
+          <fieldset>
+            <legend className="mb-1.5 block text-sm font-medium text-[var(--color-ink-700)]">Tipo de conta</legend>
+            <div className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  { id: 'individual', label: 'Pessoa física', hint: 'Autônomo ou freelancer' },
+                  { id: 'business', label: 'Empresa', hint: 'Agência ou time comercial' },
+                ] as const
+              ).map((opt) => (
+                <label
+                  key={opt.id}
+                  className={`cursor-pointer rounded-lg border p-3 text-sm transition-colors ${
+                    accountType === opt.id
+                      ? 'border-[var(--color-signal-500)] bg-[var(--color-signal-50)]'
+                      : 'border-[var(--color-ink-200)] hover:border-[var(--color-ink-300)]'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="account_type"
+                    value={opt.id}
+                    checked={accountType === opt.id}
+                    onChange={() => setAccountType(opt.id)}
+                    className="sr-only"
+                    disabled={loading}
+                  />
+                  <span className="block font-medium text-[var(--color-ink-900)]">{opt.label}</span>
+                  <span className="block text-xs text-[var(--color-ink-500)]">{opt.hint}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
 
           <div>
             <Label htmlFor="name">Nome completo</Label>
