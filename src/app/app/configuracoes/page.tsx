@@ -28,6 +28,7 @@ export default function SettingsPage() {
   // Profile form state
   const [name, setName] = useState('')
   const [company, setCompany] = useState('')
+  const [accountType, setAccountType] = useState<'individual' | 'business'>('individual')
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileSuccess, setProfileSuccess] = useState(false)
   const [profileError, setProfileError] = useState<string | null>(null)
@@ -47,7 +48,7 @@ export default function SettingsPage() {
   // Sincroniza o formulário quando o perfil/usuário carrega (ajuste de estado durante o render,
   // em vez de setState dentro de useEffect).
   const syncKey = profile
-    ? `profile:${profile.id}:${profile.full_name ?? ''}:${profile.company ?? ''}`
+    ? `profile:${profile.id}:${profile.full_name ?? ''}:${profile.company ?? ''}:${profile.account_type ?? ''}`
     : user
       ? `user:${user.id}`
       : null
@@ -57,6 +58,7 @@ export default function SettingsPage() {
     if (profile) {
       setName(profile.full_name || '')
       setCompany(profile.company || '')
+      setAccountType(profile.account_type === 'business' ? 'business' : 'individual')
     } else if (user) {
       setName(user.user_metadata?.full_name || '')
     }
@@ -76,6 +78,7 @@ export default function SettingsPage() {
         .update({
           full_name: name,
           company: company || null,
+          ...(profile?.account_type && profile.account_type !== accountType ? { account_type: accountType } : {}),
           updated_at: new Date().toISOString(),
         })
         .eq('id', user.id)
@@ -217,6 +220,25 @@ export default function SettingsPage() {
                   onChange={(e) => setCompany(e.target.value)}
                   disabled={profileLoading}
                 />
+              </div>
+
+              <div>
+                <Label htmlFor="account-type">Tipo de conta</Label>
+                <select
+                  id="account-type"
+                  value={accountType}
+                  onChange={(e) => setAccountType(e.target.value === 'business' ? 'business' : 'individual')}
+                  disabled={profileLoading || (profile?.plan ?? 'free') !== 'free'}
+                  className="h-10 w-full rounded-lg border border-[var(--color-ink-200)] bg-white px-3 text-sm text-[var(--color-ink-900)] disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500"
+                >
+                  <option value="individual">Pessoa física (autônomo, freelancer)</option>
+                  <option value="business">Empresa (agência, time comercial)</option>
+                </select>
+                <p className="mt-1 text-xs text-[var(--color-ink-400)]">
+                  {(profile?.plan ?? 'free') !== 'free'
+                    ? 'Para mudar o tipo de conta, cancele o plano atual e aguarde o fim do período pago.'
+                    : 'Define quais planos aparecem em Assinatura. Contas de empresa veem os planos empresariais.'}
+                </p>
               </div>
 
               <div>

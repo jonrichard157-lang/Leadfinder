@@ -27,5 +27,15 @@ SELECT '004 · teto diário (profiles.searches_today)',
        EXISTS (SELECT 1 FROM information_schema.columns
                 WHERE table_schema = 'public' AND table_name = 'profiles' AND column_name = 'searches_today')
 UNION ALL
+SELECT '005 · profiles.account_type e créditos',
+       EXISTS (SELECT 1 FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = 'profiles' AND column_name = 'extra_searches')
+UNION ALL
+SELECT '005 · tabelas subscriptions e billing_payments',
+       to_regclass('public.subscriptions') IS NOT NULL AND to_regclass('public.billing_payments') IS NOT NULL
+UNION ALL
+SELECT '005 · funções de cobrança',
+       EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'billing_grant_credits' AND pronamespace = 'public'::regnamespace)
+UNION ALL
 SELECT 'Existe pelo menos um admin',
        EXISTS (SELECT 1 FROM public.profiles WHERE role = 'admin');

@@ -21,7 +21,18 @@ const FAQS = [
   },
   {
     question: 'Posso cancelar minha assinatura quando quiser?',
-    answer: 'Sim. Você pode cancelar a qualquer momento diretamente na página de Assinatura, sem multas.',
+    answer:
+      'Sim. Você cancela a renovação na página de Assinatura, sem multa. O plano continua ativo até o fim do período já pago.',
+  },
+  {
+    question: 'Quais são as formas de pagamento?',
+    answer:
+      'Os pagamentos são processados pelo Mercado Pago. A assinatura mensal é cobrada no cartão; créditos avulsos aceitam cartão, Pix ou boleto.',
+  },
+  {
+    question: 'E se a cota do meu plano acabar antes do fim do mês?',
+    answer:
+      'Você pode fazer upgrade de plano ou comprar créditos avulsos de buscas e leads. Os créditos não expiram e só são usados depois da cota do plano.',
   },
   {
     question: 'O plano grátis expira?',

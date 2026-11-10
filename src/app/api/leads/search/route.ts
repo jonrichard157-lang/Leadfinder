@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Consome uma busca da cota do plano antes de chamar o Google (equipe e planos pagos são ilimitados).
+    // Consome uma busca da cota do plano antes de chamar o Google (nenhum plano é ilimitado; créditos avulsos entram depois da cota).
     const { error: quotaError } = await supabase.rpc('consume_search')
     if (quotaError) {
       if (quotaError.hint === 'search_limit') {
