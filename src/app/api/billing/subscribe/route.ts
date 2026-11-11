@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { canSubscribe, getPlan } from '@/lib/billing/catalog'
-import { appUrl, createPreapproval } from '@/lib/billing/mercadopago'
+import { appUrl, createPreapprovalPlan } from '@/lib/billing/mercadopago'
 import { billingContext, billingError } from '@/lib/billing/server'
 
 /**
@@ -24,28 +24,28 @@ export async function POST(request: NextRequest) {
     }
 
     const base = appUrl(request.nextUrl.origin)
-    const preapproval = await createPreapproval({
+    // Assinatura com plano: o Mercado Pago cria a preapproval quando o usuário assina.
+    // A linha fica com provider_subscription_id = "plan:{id}" até o webhook trocar pelo id real.
+    const mpPlan = await createPreapprovalPlan({
       reason: `OrbeLead ${plan.name}`,
-      externalReference: `sub:${ctx.userId}:${plan.id}`,
-      payerEmail: ctx.email,
       amountCents: plan.priceCents,
       backUrl: `${base}/app/assinatura?retorno=assinatura`,
     })
 
-    if (!preapproval.init_point) {
+    if (!mpPlan.init_point) {
       throw new Error('Mercado Pago não retornou o link de autorização.')
     }
 
     const { error } = await ctx.admin.from('subscriptions').insert({
       user_id: ctx.userId,
       plan_id: plan.id,
-      provider_subscription_id: preapproval.id,
-      status: preapproval.status ?? 'pending',
+      provider_subscription_id: `plan:${mpPlan.id}`,
+      status: 'pending',
       amount_cents: plan.priceCents,
     })
     if (error) throw new Error(`Falha ao registrar a assinatura: ${error.message}`)
 
-    return NextResponse.json({ url: preapproval.init_point })
+    return NextResponse.json({ url: mpPlan.init_point })
   } catch (err) {
     return billingError(err)
   }
