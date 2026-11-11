@@ -61,6 +61,12 @@ export function createPreapproval(input: {
   amountCents: number
   backUrl: string
 }) {
+  // Diagnóstico sem expor dados pessoais: domínio do e-mail e URL de retorno.
+  console.info('Criando preapproval', {
+    backUrl: input.backUrl,
+    payerDomain: input.payerEmail.split('@')[1],
+    amount: input.amountCents / 100,
+  })
   return mp<Preapproval>('/preapproval', {
     method: 'POST',
     body: {
@@ -193,5 +199,14 @@ export function verifyWebhookSignature(params: {
 
 /** URL pública do app, usada nos retornos e notificações do Mercado Pago. */
 export function appUrl(requestOrigin: string): string {
-  return (process.env.APP_URL || requestOrigin).replace(/\/$/, '')
+  // O Mercado Pago recusa back_url inválida ("Invalid request"). Só usa APP_URL se for uma URL https válida.
+  const raw = (process.env.APP_URL ?? '').trim().replace(/^["']|["']$/g, '')
+  for (const candidate of [raw, requestOrigin]) {
+    try {
+      const u = new URL(candidate)
+      if (u.protocol === 'https:' || u.hostname === 'localhost') return u.origin
+    } catch {}
+  }
+  if (raw) console.warn('APP_URL inválida; usando a origem da requisição.')
+  return requestOrigin.replace(/\/$/, '')
 }
