@@ -93,6 +93,16 @@ async function handlePreapproval(admin: Admin, pre: Preapproval) {
     .maybeSingle()
 
   let sub = existing
+  if (!sub && pre.preapproval_plan_id) {
+    // Primeira notificação de uma assinatura criada a partir do plano: vincula o id real.
+    const { data: pending } = await admin
+      .from('subscriptions')
+      .update({ provider_subscription_id: pre.id, updated_at: new Date().toISOString() })
+      .eq('provider_subscription_id', `plan:${pre.preapproval_plan_id}`)
+      .select('id, user_id, plan_id')
+      .maybeSingle()
+    sub = pending
+  }
   if (!sub) {
     const ref = parseReference(pre.external_reference)
     const plan = getPlan(ref?.itemId)
@@ -138,7 +148,7 @@ async function handlePreapproval(admin: Admin, pre: Preapproval) {
     .in('status', ['pending', 'authorized', 'paused'])
 
   for (const other of others ?? []) {
-    if (other.provider_subscription_id) {
+    if (other.provider_subscription_id && !other.provider_subscription_id.startsWith('plan:')) {
       await cancelPreapproval(other.provider_subscription_id).catch((e) =>
         console.warn('Não foi possível cancelar a assinatura anterior:', other.provider_subscription_id, e)
       )

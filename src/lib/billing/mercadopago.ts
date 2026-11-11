@@ -51,7 +51,30 @@ export interface Preapproval {
   external_reference?: string
   payer_email?: string
   init_point?: string
+  preapproval_plan_id?: string
   auto_recurring?: { transaction_amount?: number }
+}
+
+/**
+ * Assinatura com plano associado: cria um plano mensal e devolve o init_point dele.
+ * O usuário assina no Mercado Pago, que cria a preapproval (com preapproval_plan_id)
+ * e avisa pelo webhook subscription_preapproval.
+ */
+export function createPreapprovalPlan(input: { reason: string; amountCents: number; backUrl: string }) {
+  console.info('Criando preapproval_plan', { backUrl: input.backUrl, amount: input.amountCents / 100 })
+  return mp<{ id: string; init_point: string }>('/preapproval_plan', {
+    method: 'POST',
+    body: {
+      reason: input.reason,
+      back_url: input.backUrl,
+      auto_recurring: {
+        frequency: 1,
+        frequency_type: 'months',
+        transaction_amount: input.amountCents / 100,
+        currency_id: 'BRL',
+      },
+    },
+  })
 }
 
 export function createPreapproval(input: {
