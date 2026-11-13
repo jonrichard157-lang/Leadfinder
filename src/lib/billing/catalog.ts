@@ -8,6 +8,18 @@ export type AccountType = 'individual' | 'business'
 export type PlanId = 'free' | 'basico' | 'pro' | 'max' | 'agencia'
 export type PlanAudience = 'all' | AccountType
 
+/**
+ * Acesso ao Agente de busca (IA). Planos sem `agent` não têm o agente.
+ * - monthlyRuns: pedidos ao agente por mês (cada pedido executado desconta 1 busca da cota normal).
+ * - maxQueries: quantas consultas (nicho x local) um pedido pode fazer.
+ * - aiScoring: se o agente dá nota, motivo e abordagem para cada lead.
+ */
+export interface AgentAccess {
+  monthlyRuns: number
+  maxQueries: number
+  aiScoring: boolean
+}
+
 export interface Plan {
   id: PlanId
   name: string
@@ -18,6 +30,7 @@ export interface Plan {
   description: string
   features: string[]
   highlighted?: boolean
+  agent?: AgentAccess
 }
 
 export const PLANS: Plan[] = [
@@ -51,6 +64,7 @@ export const PLANS: Plan[] = [
     description: 'Para freelancers e prestadores de serviço que prospectam toda semana.',
     features: ['100 buscas por mês', '500 leads salvos por mês', 'Opportunity Score', 'Exportação em CSV'],
     highlighted: true,
+    agent: { monthlyRuns: 15, maxQueries: 2, aiScoring: false },
   },
   {
     id: 'max',
@@ -61,6 +75,7 @@ export const PLANS: Plan[] = [
     monthlyLeads: 1500,
     description: 'Para quem vive de prospecção e precisa de volume alto.',
     features: ['250 buscas por mês', '1.500 leads salvos por mês', 'Opportunity Score', 'Exportação em CSV'],
+    agent: { monthlyRuns: 50, maxQueries: 4, aiScoring: true },
   },
   {
     id: 'agencia',
@@ -72,6 +87,7 @@ export const PLANS: Plan[] = [
     description: 'Para agências e empresas com prospecção comercial contínua.',
     features: ['400 buscas por mês', '3.000 leads salvos por mês', 'Opportunity Score', 'Exportação em CSV'],
     highlighted: true,
+    agent: { monthlyRuns: 120, maxQueries: 6, aiScoring: true },
   },
 ]
 
@@ -92,6 +108,12 @@ export const CREDIT_PACKS: CreditPack[] = [
 
 export function getPlan(id: string | null | undefined): Plan | undefined {
   return PLANS.find((p) => p.id === id)
+}
+
+/** Acesso ao agente para um plano. A equipe interna (team/admin) usa o nível mais alto. */
+export function agentAccessFor(planId: string | null | undefined, role?: string | null): AgentAccess | undefined {
+  if (role === 'team' || role === 'admin') return getPlan('agencia')?.agent
+  return getPlan(planId)?.agent
 }
 
 export function getCreditPack(id: string | null | undefined): CreditPack | undefined {

@@ -2,12 +2,14 @@
 
 import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { MapPin, Search, Sparkles } from 'lucide-react'
+import { Bot, MapPin, Search, Sparkles } from 'lucide-react'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Card } from '@/components/ui/Card'
 import { Input, Label, NumberInput, Select } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
+import { AgentPanel } from '@/components/search/AgentPanel'
 import { CATEGORIES } from '@/mocks/leads'
+import { cn } from '@/lib/utils'
 import type { SearchFilters } from '@/types'
 
 const DEFAULT_FILTERS: SearchFilters = {
@@ -31,6 +33,7 @@ const POPULAR_LOCATIONS = [
 export default function SearchLeadsPage() {
   const router = useRouter()
   const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS)
+  const [mode, setMode] = useState<'rapida' | 'agente'>('rapida')
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -52,6 +55,31 @@ export default function SearchLeadsPage() {
 
   return (
     <AppLayout title="Buscar Leads" subtitle="Defina os critérios da sua próxima prospecção">
+      <div className="mx-auto mb-4 flex max-w-3xl gap-1 rounded-lg border border-[var(--color-ink-200)] bg-white p-1">
+        {([
+          ['rapida', 'Busca rápida', <Search key="s" size={16} />],
+          ['agente', 'Agente IA', <Bot key="b" size={16} />],
+        ] as const).map(([id, label, icon]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setMode(id)}
+            className={cn(
+              'flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+              mode === id
+                ? 'bg-[var(--color-signal-50)] text-[var(--color-signal-700)]'
+                : 'text-[var(--color-ink-600)] hover:bg-[var(--color-ink-50)]'
+            )}
+          >
+            {icon}
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {mode === 'agente' ? (
+        <AgentPanel />
+      ) : (
       <Card className="mx-auto max-w-3xl p-6 md:p-8">
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div>
@@ -161,6 +189,7 @@ export default function SearchLeadsPage() {
           </Button>
         </form>
       </Card>
+      )}
     </AppLayout>
   )
 }
