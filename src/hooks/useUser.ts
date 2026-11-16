@@ -19,6 +19,8 @@ export interface UserProfileData {
   leads_used_this_month: number
   monthly_search_limit: number
   searches_used_this_month: number
+  agent_runs_used_this_month?: number
+  agent_plans_used_this_month?: number
   usage_month: string
   avatar_url: string | null
 }

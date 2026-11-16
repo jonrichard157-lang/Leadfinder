@@ -20,6 +20,11 @@ export interface AgentAccess {
   aiScoring: boolean
 }
 
+/** Quantas vezes o usuário pode montar o plano por pedido (limite mensal = pedidos x este valor). */
+export const AGENT_PLANS_PER_RUN = 3
+/** Chamadas ao Google Places por consulta do agente: busca na cidade + 1 página. Fixa o custo. */
+export const AGENT_GOOGLE_CALLS_PER_QUERY = 2
+
 export interface Plan {
   id: PlanId
   name: string
@@ -75,7 +80,7 @@ export const PLANS: Plan[] = [
     monthlyLeads: 1500,
     description: 'Para quem vive de prospecção e precisa de volume alto.',
     features: ['250 buscas por mês', '1.500 leads salvos por mês', 'Opportunity Score', 'Exportação em CSV'],
-    agent: { monthlyRuns: 50, maxQueries: 4, aiScoring: true },
+    agent: { monthlyRuns: 30, maxQueries: 4, aiScoring: true },
   },
   {
     id: 'agencia',
@@ -87,7 +92,7 @@ export const PLANS: Plan[] = [
     description: 'Para agências e empresas com prospecção comercial contínua.',
     features: ['400 buscas por mês', '3.000 leads salvos por mês', 'Opportunity Score', 'Exportação em CSV'],
     highlighted: true,
-    agent: { monthlyRuns: 120, maxQueries: 6, aiScoring: true },
+    agent: { monthlyRuns: 50, maxQueries: 6, aiScoring: true },
   },
 ]
 

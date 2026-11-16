@@ -16,7 +16,7 @@ const DEFAULT_FILTERS: SearchFilters = {
   location: '',
   category: CATEGORIES[0],
   radiusKm: 10,
-  onlyWithoutWebsite: true,
+  onlyWithoutWebsite: false,
   minRating: 0,
   minReviews: 0,
 }

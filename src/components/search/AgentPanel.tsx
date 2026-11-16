@@ -2,11 +2,13 @@
 
 import { useState, type FormEvent } from 'react'
 import Link from 'next/link'
-import { Bot, Loader2, Lock, MapPin, Plus, Trash2, Wand2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Bot, Loader2, Lock, MapPin, Plus, Search, Trash2, Wand2 } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Input, Label } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
-import { agentAccessFor } from '@/lib/billing/catalog'
+import { AGENT_PLANS_PER_RUN, agentAccessFor } from '@/lib/billing/catalog'
+import { writeSearchCache } from '@/lib/searchCache'
 import { useUser } from '@/hooks/useUser'
 
 // Tipos espelhados de src/lib/agent/plan.ts (que é server-only).
@@ -37,14 +39,19 @@ const SIGNAL_LABEL: Record<Signal, string> = {
 }
 
 export function AgentPanel() {
-  const { profile, loading: loadingUser } = useUser()
+  const router = useRouter()
+  const { profile, loading: loadingUser, isTeam, refreshProfile } = useUser()
   const access = agentAccessFor(profile?.plan, profile?.role)
+  const runsUsed = profile?.agent_runs_used_this_month ?? 0
+  const plansUsed = profile?.agent_plans_used_this_month ?? 0
 
   const [request, setRequest] = useState('')
   const [location, setLocation] = useState('')
   const [plan, setPlan] = useState<SearchPlan | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [running, setRunning] = useState(false)
+  const [runError, setRunError] = useState<string | null>(null)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -59,10 +66,35 @@ export function AgentPanel() {
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || 'Não foi possível montar o plano.')
       setPlan(data.plan)
+      setRunError(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível montar o plano.')
     } finally {
       setLoading(false)
+      refreshProfile()
+    }
+  }
+
+  async function handleRun() {
+    if (!plan) return
+    setRunning(true)
+    setRunError(null)
+    try {
+      const res = await fetch('/api/agent/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Não foi possível executar a busca.')
+      // A página de resultados lê do cache da aba; o pedido não é refeito ao voltar.
+      const params = new URLSearchParams({ agente: data.searchId, titulo: data.resumo || 'Busca do agente' })
+      writeSearchCache(params.toString(), data.leads)
+      refreshProfile()
+      router.push(`/app/resultados?${params.toString()}`)
+    } catch (err) {
+      setRunError(err instanceof Error ? err.message : 'Não foi possível executar a busca.')
+      setRunning(false)
     }
   }
 
@@ -163,7 +195,14 @@ export function AgentPanel() {
             {loading ? 'Montando o plano…' : plan ? 'Montar o plano de novo' : 'Montar plano de busca'}
           </Button>
           <p className="text-center text-xs text-[var(--color-ink-500)]">
-            Montar o plano não gasta busca. Seu plano permite até {access.maxQueries} consultas por pedido.
+            Montar o plano não gasta busca. Até {access.maxQueries} consultas por pedido.
+            {!isTeam && (
+              <>
+                {' '}
+                Este mês: {runsUsed} de {access.monthlyRuns} pedidos · {plansUsed} de{' '}
+                {access.monthlyRuns * AGENT_PLANS_PER_RUN} planos montados.
+              </>
+            )}
           </p>
         </form>
       </Card>
@@ -262,9 +301,29 @@ export function AgentPanel() {
             </div>
           )}
 
-          <Button size="lg" fullWidth disabled title="Disponível na próxima etapa">
-            Executar busca (em breve)
+          {runError && (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+              {runError}{' '}
+              {/limite|cota|buscas do seu plano/i.test(runError) && (
+                <Link href="/app/assinatura" className="font-medium underline">
+                  Ver planos e créditos
+                </Link>
+              )}
+            </p>
+          )}
+
+          <Button
+            size="lg"
+            fullWidth
+            onClick={handleRun}
+            disabled={running || plan.consultas.every((q) => !q.nicho.trim() || !q.local.trim())}
+            icon={running ? <Loader2 className="animate-spin" size={18} /> : <Search size={18} />}
+          >
+            {running ? 'Buscando…' : 'Executar busca'}
           </Button>
+          <p className="text-center text-xs text-[var(--color-ink-500)]">
+            Executar usa 1 pedido ao agente e 1 busca da sua cota, não importa quantas consultas.
+          </p>
         </Card>
       )}
     </div>

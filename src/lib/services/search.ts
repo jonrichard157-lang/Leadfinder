@@ -155,7 +155,10 @@ function quadrants(center: LatLng, radiusKm: number): Rectangle[] {
  * Busca empresas locais usando a Google Places API (New).
  * Sem GOOGLE_PLACES_API_KEY, usa dados simulados apenas em desenvolvimento.
  */
-export async function searchLocalPlaces(filters: SearchFilters): Promise<Lead[]> {
+export async function searchLocalPlaces(
+  filters: SearchFilters,
+  options: { maxRequests?: number } = {}
+): Promise<Lead[]> {
   const apiKey = process.env.GOOGLE_PLACES_API_KEY
 
   if (!apiKey) {
@@ -190,7 +193,8 @@ export async function searchLocalPlaces(filters: SearchFilters): Promise<Lead[]>
     }
   }
 
-  const hasEnough = () => leads.length >= TARGET_RESULTS || requests >= MAX_REQUESTS
+  const maxRequests = Math.min(options.maxRequests ?? MAX_REQUESTS, MAX_REQUESTS)
+  const hasEnough = () => leads.length >= TARGET_RESULTS || requests >= maxRequests
 
   // 1. Busca na cidade inteira (até 3 páginas, o máximo que o Google devolve por consulta).
   const cityQuery: TextSearchQuery = { textQuery: `${categoryQuery} em ${filters.location}` }

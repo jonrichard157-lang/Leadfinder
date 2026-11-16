@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       location: text(body.location, 'Curitiba, PR', 120),
       category: text(body.category, 'Todas as categorias', 80),
       radiusKm: clamp(body.radiusKm, 1, 50, 10),
-      onlyWithoutWebsite: body.onlyWithoutWebsite !== false,
+      onlyWithoutWebsite: body.onlyWithoutWebsite === true,
       minRating: clamp(body.minRating, 0, 5, 0),
       minReviews: Math.round(clamp(body.minReviews, 0, 100000, 0)),
     }

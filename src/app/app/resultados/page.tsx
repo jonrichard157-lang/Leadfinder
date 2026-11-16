@@ -40,14 +40,21 @@ function ResultsContent({ cacheKey }: { cacheKey: string }) {
   const location = searchParams.get('location') || 'Curitiba, PR'
   const category = searchParams.get('category') || 'Todas as categorias'
   const radiusKm = Number(searchParams.get('radius')) || 10
-  const onlyWithoutWebsite = searchParams.get('onlyWithoutWebsite') !== 'false'
+  const onlyWithoutWebsite = searchParams.get('onlyWithoutWebsite') === 'true'
   const minRating = Number(searchParams.get('minRating')) || 0
   const minReviews = Number(searchParams.get('minReviews')) || 0
+  // Busca do agente: o resultado vem pronto do cache da aba. Nunca refaz a busca sozinho.
+  const agentSearch = searchParams.get('agente')
+  const agentTitle = searchParams.get('titulo') || 'Busca do agente'
 
   const [cached] = useState(() => readSearchCache(cacheKey))
   const [leads, setLeads] = useState<Lead[]>(() => (cached ? [...cached].sort(byScore) : []))
-  const [loading, setLoading] = useState(!cached)
-  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(!cached && !agentSearch)
+  const [error, setError] = useState<string | null>(() =>
+    !cached && agentSearch
+      ? 'Este resultado do agente não está mais disponível nesta aba. Volte e execute o plano de novo.'
+      : null
+  )
   const [saveError, setSaveError] = useState<string | null>(null)
   const [sortByScore, setSortByScore] = useState(true)
   const [, startTransition] = useTransition()
@@ -71,7 +78,7 @@ function ResultsContent({ cacheKey }: { cacheKey: string }) {
   }, [cacheKey, leads, loading, error])
 
   useEffect(() => {
-    if (cached) return
+    if (cached || agentSearch) return
 
     async function fetchSearch() {
       try {
@@ -110,7 +117,7 @@ function ResultsContent({ cacheKey }: { cacheKey: string }) {
     }
 
     fetchSearch()
-  }, [cached, location, category, radiusKm, onlyWithoutWebsite, minRating, minReviews])
+  }, [cached, agentSearch, location, category, radiusKm, onlyWithoutWebsite, minRating, minReviews])
 
   async function handleToggleSave(id: string) {
     if (!user) {
@@ -150,7 +157,8 @@ function ResultsContent({ cacheKey }: { cacheKey: string }) {
   }
 
   function handleExport() {
-    exportLeadsToCsv(leads, `orbelead-busca-${location.replace(/[^a-zA-Z0-9]/g, '_')}`)
+    const name = agentSearch ? 'agente' : location.replace(/[^a-zA-Z0-9]/g, '_')
+    exportLeadsToCsv(leads, `orbelead-busca-${name}`)
   }
 
   const categoryLabel = category && category !== 'Todas as categorias' ? category : 'Empresas'
@@ -159,9 +167,11 @@ function ResultsContent({ cacheKey }: { cacheKey: string }) {
     <AppLayout
       title="Resultados da Busca"
       subtitle={
-        loading
-          ? `Mapeando ${categoryLabel.toLowerCase()} em "${location}"...`
-          : `${leads.length} oportunidades encontradas para "${categoryLabel} em ${location}"`
+        agentSearch
+          ? `${leads.length} oportunidades encontradas pelo agente: ${agentTitle}`
+          : loading
+            ? `Mapeando ${categoryLabel.toLowerCase()} em "${location}"...`
+            : `${leads.length} oportunidades encontradas para "${categoryLabel} em ${location}"`
       }
     >
       <div className="flex flex-col gap-6">
@@ -230,9 +240,9 @@ function ResultsContent({ cacheKey }: { cacheKey: string }) {
                 variant="secondary"
                 size="sm"
                 icon={<RefreshCw size={14} />}
-                onClick={() => window.location.reload()}
+                onClick={() => (agentSearch ? router.push('/app/buscar') : window.location.reload())}
               >
-                Tentar novamente
+                {agentSearch ? 'Voltar para a busca' : 'Tentar novamente'}
               </Button>
             </div>
           </div>
