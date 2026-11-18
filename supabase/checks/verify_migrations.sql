@@ -37,5 +37,17 @@ UNION ALL
 SELECT '005 · funções de cobrança',
        EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'billing_grant_credits' AND pronamespace = 'public'::regnamespace)
 UNION ALL
+SELECT '006 · contadores do agente no perfil',
+       EXISTS (SELECT 1 FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = 'profiles' AND column_name = 'agent_runs_used_this_month')
+UNION ALL
+SELECT '006 · searches.mode e searches.intent',
+       EXISTS (SELECT 1 FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = 'searches' AND column_name = 'intent')
+UNION ALL
+SELECT '006 · função agent_use (só service role)',
+       EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'agent_use' AND pronamespace = 'public'::regnamespace)
+       AND NOT has_function_privilege('authenticated', 'public.agent_use(uuid, text, integer)', 'EXECUTE')
+UNION ALL
 SELECT 'Existe pelo menos um admin',
        EXISTS (SELECT 1 FROM public.profiles WHERE role = 'admin');
