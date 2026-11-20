@@ -38,7 +38,13 @@ export async function POST(request: NextRequest) {
   }
 
   const admin = createAdminClient()
-  if (!admin) return NextResponse.json({ error: 'Agente indisponível no momento.' }, { status: 503 })
+  if (!admin) {
+    console.error('Agente: SUPABASE_SERVICE_ROLE_KEY ou NEXT_PUBLIC_SUPABASE_URL ausente neste deploy.')
+    return NextResponse.json(
+      { error: 'Agente indisponível no momento (configuração do servidor incompleta).' },
+      { status: 503 }
+    )
+  }
 
   // 1. Pedido do mês (limite do agente). Depois, 1 busca da cota normal; se ela falhar, devolve o pedido.
   const { error: runError } = await admin.rpc('agent_use', { p_user: user.id, p_kind: 'run', p_limit: access.monthlyRuns })

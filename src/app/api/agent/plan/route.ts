@@ -35,7 +35,13 @@ export async function POST(request: NextRequest) {
   }
 
   const admin = createAdminClient()
-  if (!admin) return NextResponse.json({ error: 'Agente indisponível no momento.' }, { status: 503 })
+  if (!admin) {
+    console.error('Agente: SUPABASE_SERVICE_ROLE_KEY ou NEXT_PUBLIC_SUPABASE_URL ausente neste deploy.')
+    return NextResponse.json(
+      { error: 'Agente indisponível no momento (configuração do servidor incompleta).' },
+      { status: 503 }
+    )
+  }
 
   const { error: usageError } = await admin.rpc('agent_use', {
     p_user: user.id,
